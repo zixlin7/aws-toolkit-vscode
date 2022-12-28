@@ -12,6 +12,7 @@ import { distance } from 'fastest-levenshtein'
 import { CodewhispererLanguage, telemetry } from '../../shared/telemetry/telemetry'
 import { runtimeLanguageContext } from '../util/runtimeLanguageContext'
 import { TelemetryHelper } from '../util/telemetryHelper'
+import { jupyter } from '../models/constants'
 
 interface CodeWhispererToken {
     range: vscode.Range
@@ -226,7 +227,7 @@ export class CodeWhispererCodeCoverageTracker {
             return undefined
         }
         const cwsprLanguage = runtimeLanguageContext.mapVscLanguageToCodeWhispererLanguage(language)
-        if (!cwsprLanguage) {
+        if (!cwsprLanguage || cwsprLanguage === jupyter) {
             return undefined
         }
         const instance = this.instances.get(language) ?? new this(cwsprLanguage, memeto)

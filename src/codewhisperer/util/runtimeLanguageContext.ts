@@ -41,7 +41,14 @@ export class RuntimeLanguageContext {
      * @param vscLanguageId : official vscode languageId
      * @returns corresponding CodewhispererLanguage ID if any, otherwise undefined
      */
-    public mapVscLanguageToCodeWhispererLanguage(vscLanguageId?: string): CodewhispererLanguage | undefined {
+    public mapVscLanguageToCodeWhispererLanguage(
+        vscLanguageId?: string,
+        fileName?: string
+    ): CodewhispererLanguage | 'jupyter' | undefined {
+        // map jupyter notebook files to jupyter as languageId to align with JetBrains until we officially support it
+        if (fileName?.endsWith(CodeWhispererConstants.jupyterExtension)) {
+            return CodeWhispererConstants.jupyter
+        }
         return this.supportedLanguageMap.get(vscLanguageId) ?? undefined
     }
 
@@ -49,7 +56,7 @@ export class RuntimeLanguageContext {
      * @param vscLanguageId : official vscode languageId
      * @returns An object with a field language: CodewhispererLanguage, if no corresponding CodewhispererLanguage ID, plaintext is returned
      */
-    public getLanguageContext(vscLanguageId?: string): { language: CodewhispererLanguage } {
+    public getLanguageContext(vscLanguageId?: string): { language: CodewhispererLanguage | 'jupyter' } {
         return { language: this.mapVscLanguageToCodeWhispererLanguage(vscLanguageId) ?? 'plaintext' }
     }
 

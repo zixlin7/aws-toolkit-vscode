@@ -22,7 +22,7 @@ import { isCloud9 } from '../../shared/extensionUtilities'
 import { asyncCallWithTimeout, isAwsError } from '../util/commonUtil'
 import * as codewhispererClient from '../client/codewhisperer'
 import { showTimedMessage } from '../../shared/utilities/messages'
-import { telemetry } from '../../shared/telemetry/telemetry'
+import { CodewhispererLanguage, telemetry } from '../../shared/telemetry/telemetry'
 import {
     CodewhispererAutomatedTriggerType,
     CodewhispererCompletionType,
@@ -267,7 +267,7 @@ export class RecommendationHandler {
                     codewhispererCursorOffset: TelemetryHelper.instance.cursorOffset
                         ? TelemetryHelper.instance.cursorOffset
                         : 0,
-                    codewhispererLanguage: languageContext.language,
+                    codewhispererLanguage: languageContext.language as CodewhispererLanguage,
                     reason: reason ? reason.substring(0, 200) : undefined,
                     credentialStartUrl: TelemetryHelper.instance.startUrl,
                 })

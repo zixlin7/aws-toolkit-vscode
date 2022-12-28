@@ -34,11 +34,13 @@ export function extractContextForCodeWhisperer(editor: vscode.TextEditor): codew
         )
     )
 
+    const filename = getFileName(editor)
+
     return {
-        filename: getFileName(editor),
+        filename: filename,
         programmingLanguage: {
             languageName:
-                runtimeLanguageContext.mapVscLanguageToCodeWhispererLanguage(editor.document.languageId) ??
+                runtimeLanguageContext.mapVscLanguageToCodeWhispererLanguage(editor.document.languageId, filename) ??
                 editor.document.languageId,
         },
         leftFileContent: caretLeftFileContext,

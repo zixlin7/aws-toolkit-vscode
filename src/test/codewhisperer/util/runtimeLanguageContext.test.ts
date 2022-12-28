@@ -93,6 +93,11 @@ describe('runtimeLanguageContext', function () {
                 assert.strictEqual(actual, expected)
             })
         }
+
+        it('should return jupyter for jupyter notebook files', function () {
+            const actual = languageContext.mapVscLanguageToCodeWhispererLanguage('python', 'test.ipynb')
+            assert.strictEqual(actual, 'jupyter')
+        })
     })
 
     // for now we will only jsx mapped to javascript, tsx mapped to typescript, all other language should remain the same

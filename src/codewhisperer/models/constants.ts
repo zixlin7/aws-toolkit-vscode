@@ -124,6 +124,10 @@ export const contextPreviewLen = 20
  */
 export const unsupportedLanguagesCacheTTL = 10 * 60 * 60 * 1000
 
+export const jupyterExtension = '.ipynb'
+
+export const jupyter = 'jupyter'
+
 export const unsupportedLanguagesKey = 'CODEWHISPERER_UNSUPPORTED_LANGUAGES_KEY'
 
 export const autoTriggerEnabledKey = 'CODEWHISPERER_AUTO_TRIGGER_ENABLED'
