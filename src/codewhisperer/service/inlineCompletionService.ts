@@ -2,6 +2,7 @@
  * Copyright 2022 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
+import * as fs from 'fs-extra'
 import * as vscode from 'vscode'
 import { ConfigurationEntry, vsCodeState } from '../models/model'
 import * as CodeWhispererConstants from '../models/constants'
@@ -22,6 +23,7 @@ import { getPrefixSuffixOverlap } from '../util/commonUtil'
 import globals from '../../shared/extensionGlobals'
 import { AuthUtil } from '../util/authUtil'
 import { shared } from '../../shared/utilities/functionUtils'
+import * as EditorContext from '../util/editorContext'
 
 class CWInlineCompletionItemProvider implements vscode.InlineCompletionItemProvider {
     private activeItemIndex: number | undefined
@@ -388,6 +390,16 @@ export class InlineCompletionService {
             getLogger().error(`Error ${error} in getPaginatedRecommendation`)
         }
         this.setCodeWhispererStatusBarOk()
+        if (RecommendationHandler.instance.recommendations.length > 0) {
+            const leftConext = EditorContext.getLeftContext(editor, RecommendationHandler.instance.startPos.line)
+            this.saveToJson(
+                RecommendationHandler.instance.recommendations[0].content,
+                RecommendationHandler.instance.startPos.line,
+                RecommendationHandler.instance.startPos.character,
+                leftConext,
+                TelemetryHelper.instance.CodeWhispererAutomatedtriggerType
+            )
+        }
         if (triggerType === 'OnDemand' && RecommendationHandler.instance.recommendations.length === 0) {
             if (RecommendationHandler.instance.errorMessagePrompt !== '') {
                 showTimedMessage(RecommendationHandler.instance.errorMessagePrompt, 2000)
@@ -396,6 +408,34 @@ export class InlineCompletionService {
             }
         }
         TelemetryHelper.instance.tryRecordClientComponentLatency(editor.document.languageId)
+    }
+
+    saveToJson(
+        recommendation: string,
+        lineNumber: number,
+        character: number,
+        leftContext: string,
+        triggerType: string
+    ) {
+        const fileName = vscode.workspace.getConfiguration('aws.codeWhisperer').get('javaCompilationOutput')
+        if (!fileName || typeof fileName !== 'string') {
+            return
+        }
+        const newEntry = [
+            {
+                recommendation,
+                lineNumber,
+                character,
+                leftContext,
+                triggerType,
+            },
+        ]
+        if (fs.existsSync(fileName)) {
+            const data = JSON.parse(fs.readFileSync(fileName, 'utf-8').toString())
+            fs.writeFileSync(fileName, JSON.stringify([...data, ...newEntry]))
+        } else {
+            fs.writeFileSync(fileName, JSON.stringify(newEntry))
+        }
     }
 
     async showRecommendation(indexShift: number, isFirstRecommendation: boolean = false) {
