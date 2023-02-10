@@ -417,7 +417,7 @@ export class InlineCompletionService {
         leftContext: string,
         triggerType: string
     ) {
-        const fileName = vscode.workspace.getConfiguration('aws.codeWhisperer').get('javaCompilationOutput')
+        const fileName = vscode.workspace.getConfiguration('aws.codeWhisperer').get('simulationOutput')
         if (!fileName || typeof fileName !== 'string') {
             return
         }

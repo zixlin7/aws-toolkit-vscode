@@ -254,6 +254,21 @@
                     "default": "",
                     "description": "Provide the ABSOLUTE path which is used to store java project compilation results."
                 },
+                "aws.codeWhisperer.simulationOutput": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Provide the ABSOLUTE path which is used to store simulation results."
+                },
+                "aws.codeWhisperer.simulationInput": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Provide the ABSOLUTE path which is used to store simulation input file."
+                },
+                "aws.codeWhisperer.simulationTypingSpeed": {
+                    "type": "integer",
+                    "default": 60,
+                    "description": "Provide the desired typing speed for simulation."
+                },
                 "aws.resources.enabledResources": {
                     "type": "array",
                     "description": "%AWS.configuration.description.resources.enabledResources%",
