@@ -16,6 +16,18 @@ export const startSimulation = Commands.declare('aws.codeWhisperer.simulate', ()
     }
 
     const fileContents = fs.readFileSync(inputPath, 'utf-8')
+    const cases = fileContents.split(/\r?\n/)
+    const sampledCases = []
+    for (let i = 0; i < cases.length; i++) {
+        const sample = Math.random()
+        if (sample > 0.5 && sampledCases.length < 200) {
+            const content = JSON.parse(cases[i])
+            sampledCases.push({ input: `${content.prompt}${content.groundtruth}` })
+        }
+        if (sampledCases.length >= 200) {
+            break
+        }
+    }
     const fsExts = ['py', 'cs', 'ts', 'js', 'java']
     const fnames: string[] = []
     fsExts.forEach(async ext => {
@@ -39,7 +51,9 @@ export const startSimulation = Commands.declare('aws.codeWhisperer.simulate', ()
     }
 
     const editor = await vscode.window.showTextDocument(doc, vscode.ViewColumn.One, false)
-    typeSimulation(fileContents, editor, editor.selection.end, typingSpeed, inputPath, outputPath)
+    sampledCases.forEach((sample, i) => {
+        typeSimulation(sample.input, editor, editor.selection.end, typingSpeed, inputPath, outputPath)
+    })
 })
 
 const typeSimulation = (
@@ -54,7 +68,7 @@ const typeSimulation = (
 
     const token = text.substring(0, 1)
     if (text.length == 0) {
-        mapPrompt(inputPath, outputPath)
+        mapPrompt(text, outputPath)
         return
     }
     text = text.slice(1, text.length)
@@ -87,10 +101,9 @@ const typeSimulation = (
         })
 }
 
-export const mapPrompt = (inputFile: string, outputFile: string) => {
+export const mapPrompt = (truth: string, outputFile: string) => {
     const recommendations = JSON.parse(fs.readFileSync(outputFile).toString())
-    const groundTruth = fs.readFileSync(inputFile, 'utf-8')
-    const lines = groundTruth.split(/\r?\n/)
+    const lines = truth.split(/\r?\n/)
     recommendations.forEach((reco: any) => {
         const numberOfLines = reco.recommendation.split(/\r?\n/).length as number
         const truthLines = []
