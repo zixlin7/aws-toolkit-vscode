@@ -4,6 +4,7 @@
  */
 import * as fs from 'fs-extra'
 import * as vscode from 'vscode'
+import { sleep } from '../../shared/utilities/timeoutUtils'
 // import { ExtContext } from '../../shared/extensions'
 import { Commands } from '../../shared/vscode/commands2'
 
@@ -24,7 +25,7 @@ export const startSimulation = Commands.declare('aws.codeWhisperer.simulate', ()
             const content = JSON.parse(cases[i])
             sampledCases.push({ input: `${content.prompt}${content.groundtruth}` })
         }
-        if (sampledCases.length >= 200) {
+        if (sampledCases.length >= 5) {
             break
         }
     }
@@ -51,54 +52,38 @@ export const startSimulation = Commands.declare('aws.codeWhisperer.simulate', ()
     }
 
     const editor = await vscode.window.showTextDocument(doc, vscode.ViewColumn.One, false)
-    sampledCases.forEach((sample, i) => {
-        typeSimulation(sample.input, editor, editor.selection.end, typingSpeed, inputPath, outputPath)
-    })
+    let i = 0
+    while (i < 200) {
+        const sample = sampledCases[i]
+        await typeSimulation(sample.input, editor, typingSpeed, outputPath)
+        i++
+    }
 })
 
-const typeSimulation = (
-    text: string,
-    editor: vscode.TextEditor,
-    end: vscode.Position,
-    speed: number,
-    inputPath: string,
-    outputPath: string
-) => {
-    const charsToPauseOn = [',', '.', '!']
+const typeSimulation = async (text: string, editor: vscode.TextEditor, speed: number, outputPath: string) => {
+    let newEnd = new vscode.Position(0, 0)
 
-    const token = text.substring(0, 1)
-    if (text.length == 0) {
-        mapPrompt(text, outputPath)
-        return
-    }
-    text = text.slice(1, text.length)
-
-    if (token == `\n` || token == `\r\n`) {
-        end = new vscode.Position(end.line + 1, 0) //start of a new line
-    }
-
-    editor
-        .edit(editbuilder => {
-            editbuilder.insert(end, token)
-
-            // move the cursor
-            const newSelection = new vscode.Selection(end, end)
+    const tokens = text.split('')
+    let i = 0
+    while (i < tokens.length - 1) {
+        const token = tokens[i]
+        if (token == `\n` || token == `\r\n`) {
+            newEnd = new vscode.Position(newEnd.line + 1, 0) //start of a new line
+        }
+        await editor.edit(editbuilder => {
+            editbuilder.insert(newEnd, token)
+            const newSelection = new vscode.Selection(newEnd, newEnd)
             editor.selection = newSelection
         })
-        .then(() => {
-            let timeout = speed
+        await sleep(speed)
+        newEnd = new vscode.Position(newEnd.line, newEnd.character + token.length)
+        i++
+    }
 
-            // after a pause char (like a coma), take a breath
-            if (charsToPauseOn.indexOf(token) != -1) {
-                timeout += speed * 1.5
-            }
-
-            // increment the position
-            end = new vscode.Position(end.line, end.character + token.length)
-            setTimeout(() => {
-                typeSimulation(text, editor, end, speed, inputPath, outputPath)
-            }, timeout)
-        })
+    await editor.edit(editbuilder => {
+        editbuilder.replace(new vscode.Range(new vscode.Position(0, 0), newEnd), '')
+    })
+    mapPrompt(text, outputPath)
 }
 
 export const mapPrompt = (truth: string, outputFile: string) => {
