@@ -151,39 +151,3 @@ const typeSimulation = async (text: string, editor: vscode.TextEditor, speed: nu
 function randomIntegerBetween(min: number, max: number) {
     return Math.floor(Math.random() * (max - min) + min)
 }
-
-// const checkLanguage = (str: string) => {
-
-//     if (str.includes('javascript')) {
-//         return 'javascript'
-//     } else if (str.includes('python')) {
-//         return 'python'
-//     } else if (str.includes('java')) {
-//         return 'java'
-//     } else if (str.includes('csharp')) {
-//         return 'csharp'
-//     } else if (str.includes('typescript')) {
-//         return 'typescript'
-//     } else {
-//         new Error('can not map file name to corresponding language.........')
-//     }
-// }
-
-// function saveToJson(recommendation: string, truth: string) {
-//     const fileName = '/Users/xshaohua/Desktop/simulation/output/comparison.json'
-//     if (!fileName || typeof fileName !== 'string') {
-//         return
-//     }
-//     const newEntry = [
-//         {
-//             recommendation,
-//             truth,
-//         },
-//     ]
-//     if (fs.existsSync(fileName)) {
-//         const data = JSON.parse(fs.readFileSync(fileName, 'utf-8').toString())
-//         fs.writeFileSync(fileName, JSON.stringify([...data, ...newEntry]))
-//     } else {
-//         fs.writeFileSync(fileName, JSON.stringify(newEntry))
-//     }
-// }

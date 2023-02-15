@@ -318,7 +318,9 @@ export class RecommendationHandler {
         this.sessionId = sessionId
         this.nextToken = nextToken
         this.errorCode = errorCode
-        this.lastRequest = req
+        if (page === 0) {
+            this.lastRequest = req
+        }
     }
 
     cancelPaginatedRequest() {

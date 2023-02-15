@@ -63,7 +63,6 @@ export class KeyStrokeHandler {
             }
 
             try {
-                console.log('about to trigger', event.contentChanges)
                 this.invokeAutomatedTrigger('IdleTime', editor, client, config)
             } finally {
                 if (this.idleTriggerTimer) {

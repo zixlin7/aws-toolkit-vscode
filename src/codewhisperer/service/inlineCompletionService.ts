@@ -449,7 +449,7 @@ export class InlineCompletionService {
 
     flushRecommendationEntry(): RecommendationEntry[] {
         const cloned = [...this.recommendationEntries]
-        this.recommendationEntries.length = 0
+        this.recommendationEntries = []
         return cloned
     }
 
