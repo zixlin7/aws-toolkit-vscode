@@ -31,7 +31,6 @@ import {
 } from '../../shared/telemetry/telemetry'
 import { CodeWhispererCodeCoverageTracker } from '../tracker/codewhispererCodeCoverageTracker'
 import globals from '../../shared/extensionGlobals'
-import CodeWhispererClient = require('../client/codewhispererclient')
 
 /**
  * This class is for getRecommendation/listRecommendation API calls and its states
