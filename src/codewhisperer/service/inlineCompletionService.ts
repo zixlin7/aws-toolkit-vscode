@@ -2,7 +2,6 @@
  * Copyright 2022 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
-import * as fs from 'fs-extra'
 import * as vscode from 'vscode'
 import { ConfigurationEntry, vsCodeState } from '../models/model'
 import * as CodeWhispererConstants from '../models/constants'
@@ -24,7 +23,6 @@ import { getPrefixSuffixOverlap } from '../util/commonUtil'
 import globals from '../../shared/extensionGlobals'
 import { AuthUtil } from '../util/authUtil'
 import { shared } from '../../shared/utilities/functionUtils'
-import * as EditorContext from '../util/editorContext'
 
 export interface RecommendationEntry {
     recommendation: string
@@ -36,6 +34,9 @@ export interface RecommendationEntry {
     completionType: CodewhispererCompletionType
     source: string | undefined
     leftFileContext: string | undefined
+    timestamp: number
+    isExactMatch: boolean
+    similarity: number
 }
 
 class CWInlineCompletionItemProvider implements vscode.InlineCompletionItemProvider {
@@ -412,7 +413,8 @@ export class InlineCompletionService {
                 TelemetryHelper.instance.CodeWhispererAutomatedtriggerType,
                 editor.document.languageId,
                 TelemetryHelper.instance.completionType,
-                RecommendationHandler.instance.lastRequest?.fileContext.leftFileContent
+                RecommendationHandler.instance.lastRequest?.fileContext.leftFileContent,
+                Date.now()
             )
         }
         if (triggerType === 'OnDemand' && RecommendationHandler.instance.recommendations.length === 0) {
@@ -432,7 +434,8 @@ export class InlineCompletionService {
         triggerType: string,
         language: string,
         completionType: CodewhispererCompletionType,
-        leftFileContext: string | undefined
+        leftFileContext: string | undefined,
+        timestamp: number
     ) {
         this.recommendationEntries.push({
             recommendation: recommendation,
@@ -444,6 +447,9 @@ export class InlineCompletionService {
             completionType: completionType,
             source: undefined,
             leftFileContext: leftFileContext,
+            isExactMatch: false,
+            similarity: 0,
+            timestamp,
         })
     }
 

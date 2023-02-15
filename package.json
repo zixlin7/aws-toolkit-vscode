@@ -2,7 +2,7 @@
     "name": "aws-toolkit-vscode",
     "displayName": "AWS Toolkit",
     "description": "Amazon Web Services toolkit for browsing and updating cloud resources",
-    "version": "1.63.0-BETA",
+    "version": "1.63.0-BETA-BASELINE",
     "extensionKind": [
         "workspace"
     ],
@@ -3636,7 +3636,8 @@
         "winston-transport": "^4.5.0",
         "xml2js": "^0.4.19",
         "yaml": "^1.9.2",
-        "yaml-cfn": "^0.3.1"
+        "yaml-cfn": "^0.3.1",
+        "fuzzball": "2.1.2"
     },
     "prettier": {
         "printWidth": 120,
