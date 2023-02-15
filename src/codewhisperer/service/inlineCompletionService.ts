@@ -13,6 +13,7 @@ import {
     telemetry,
     CodewhispererAutomatedTriggerType,
     CodewhispererTriggerType,
+    CodewhispererCompletionType,
 } from '../../shared/telemetry/telemetry'
 import { showTimedMessage } from '../../shared/utilities/messages'
 import { getLogger } from '../../shared/logger/logger'
@@ -24,6 +25,17 @@ import globals from '../../shared/extensionGlobals'
 import { AuthUtil } from '../util/authUtil'
 import { shared } from '../../shared/utilities/functionUtils'
 import * as EditorContext from '../util/editorContext'
+
+export interface RecommendationEntry {
+    recommendation: string
+    lineNumber: number
+    offset: number
+    triggerType: string
+    groundTruth: string | undefined
+    language: string
+    completionType: CodewhispererCompletionType
+    source: string | undefined
+}
 
 class CWInlineCompletionItemProvider implements vscode.InlineCompletionItemProvider {
     private activeItemIndex: number | undefined
@@ -224,6 +236,7 @@ export class InlineCompletionService {
     private next: vscode.Disposable
     private prev: vscode.Disposable
     private _isPaginationRunning = false
+    public recommendationEntries: RecommendationEntry[] = []
 
     constructor() {
         this.prev = prevCommand.register(this)
@@ -392,12 +405,14 @@ export class InlineCompletionService {
         this.setCodeWhispererStatusBarOk()
         if (RecommendationHandler.instance.recommendations.length > 0) {
             const leftConext = EditorContext.getLeftContext(editor, RecommendationHandler.instance.startPos.line)
-            this.saveToJson(
+
+            this.cacheRecommendationEntry(
                 RecommendationHandler.instance.recommendations[0].content,
                 RecommendationHandler.instance.startPos.line,
                 RecommendationHandler.instance.startPos.character,
-                leftConext,
-                TelemetryHelper.instance.CodeWhispererAutomatedtriggerType
+                TelemetryHelper.instance.CodeWhispererAutomatedtriggerType,
+                editor.document.languageId,
+                TelemetryHelper.instance.completionType
             )
         }
         if (triggerType === 'OnDemand' && RecommendationHandler.instance.recommendations.length === 0) {
@@ -410,32 +425,30 @@ export class InlineCompletionService {
         TelemetryHelper.instance.tryRecordClientComponentLatency(editor.document.languageId)
     }
 
-    saveToJson(
+    private cacheRecommendationEntry(
         recommendation: string,
         lineNumber: number,
         character: number,
-        leftContext: string,
-        triggerType: string
+        triggerType: string,
+        language: string,
+        completionType: CodewhispererCompletionType
     ) {
-        const fileName = vscode.workspace.getConfiguration('aws.codeWhisperer').get('simulationOutput')
-        if (!fileName || typeof fileName !== 'string') {
-            return
-        }
-        const newEntry = [
-            {
-                recommendation,
-                lineNumber,
-                character,
-                leftContext,
-                triggerType,
-            },
-        ]
-        if (fs.existsSync(fileName)) {
-            const data = JSON.parse(fs.readFileSync(fileName, 'utf-8').toString())
-            fs.writeFileSync(fileName, JSON.stringify([...data, ...newEntry]))
-        } else {
-            fs.writeFileSync(fileName, JSON.stringify(newEntry))
-        }
+        this.recommendationEntries.push({
+            recommendation: recommendation,
+            lineNumber: lineNumber,
+            offset: character,
+            triggerType: triggerType,
+            groundTruth: undefined,
+            language: language,
+            completionType: completionType,
+            source: undefined,
+        })
+    }
+
+    flushRecommendationEntry(): RecommendationEntry[] {
+        const cloned = [...this.recommendationEntries]
+        this.recommendationEntries.length = 0
+        return cloned
     }
 
     async showRecommendation(indexShift: number, isFirstRecommendation: boolean = false) {

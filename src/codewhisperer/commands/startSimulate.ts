@@ -7,60 +7,115 @@ import * as vscode from 'vscode'
 import { sleep } from '../../shared/utilities/timeoutUtils'
 // import { ExtContext } from '../../shared/extensions'
 import { Commands } from '../../shared/vscode/commands2'
+import { InlineCompletion } from '../service/inlineCompletion'
+import { InlineCompletionService, RecommendationEntry } from '../service/inlineCompletionService'
+
+interface CodeSnippet {
+    input: string
+}
 
 export const startSimulation = Commands.declare('aws.codeWhisperer.simulate', () => async () => {
     const inputPath = vscode.workspace.getConfiguration('aws.codeWhisperer').get('simulationInput') as string
     const outputPath = vscode.workspace.getConfiguration('aws.codeWhisperer').get('simulationOutput') as string
     const typingSpeed = vscode.workspace.getConfiguration('aws.codeWhisperer').get('simulationTypingSpeed') as number
+    const sampledSize = vscode.workspace.getConfiguration('aws.codewhisperer').get('simulationSampledSize') as number
+
     if (!inputPath || typeof inputPath !== 'string') {
         return
     }
 
     const fileContents = fs.readFileSync(inputPath, 'utf-8')
     const cases = fileContents.split(/\r?\n/)
-    const sampledCases = []
-    for (let i = 0; i < cases.length; i++) {
-        const sample = Math.random()
-        if (sample > 0.5 && sampledCases.length < 200) {
-            const content = JSON.parse(cases[i])
-            sampledCases.push({ input: `${content.prompt}${content.groundtruth}` })
+    const sampledCases: CodeSnippet[] = sampleData(cases, sampledSize)
+
+    const mylanguage = checkLanguage(inputPath)
+
+    if (mylanguage) {
+        try {
+            let results: RecommendationEntry[] = []
+
+            for (const codeSample of sampledCases) {
+                await collectData(codeSample, mylanguage, typingSpeed)
+                const result = analyzeData(codeSample.input, outputPath)
+                results = [...results, ...result]
+            }
+
+            fs.writeFileSync(outputPath, JSON.stringify(results))
+        } finally {
+            console.error('error')
         }
-        if (sampledCases.length >= 5) {
-            break
-        }
-    }
-    const fsExts = ['py', 'cs', 'ts', 'js', 'java']
-    const fnames: string[] = []
-    fsExts.forEach(async ext => {
-        const fileName = inputPath.replace('.jsonl', `simulation${Date.now()}.${ext}`)
-        fnames.push(fileName)
-        fs.writeFileSync(fileName, '')
-    })
-
-    let doc: vscode.TextDocument
-
-    if (inputPath.includes('javascript')) {
-        doc = await vscode.workspace.openTextDocument(fnames[2])
-    } else if (inputPath.includes('python')) {
-        doc = await vscode.workspace.openTextDocument(fnames[0])
-    } else if (inputPath.includes('java')) {
-        doc = await vscode.workspace.openTextDocument(fnames[4])
-    } else if (inputPath.includes('csharp')) {
-        doc = await vscode.workspace.openTextDocument(fnames[1])
-    } else {
-        doc = await vscode.workspace.openTextDocument(fnames[3])
-    }
-
-    const editor = await vscode.window.showTextDocument(doc, vscode.ViewColumn.One, false)
-    let i = 0
-    while (i < 200) {
-        const sample = sampledCases[i]
-        await typeSimulation(sample.input, editor, typingSpeed, outputPath)
-        i++
     }
 })
 
-const typeSimulation = async (text: string, editor: vscode.TextEditor, speed: number, outputPath: string) => {
+async function collectData(codeCase: CodeSnippet, language: string, typingSpeed: number) {
+    await vscode.workspace.openTextDocument({ language: language }).then(async doc => {
+        await vscode.window.showTextDocument(doc, vscode.ViewColumn.One, false).then(async textEditor => {
+            await typeSimulation(codeCase.input, textEditor, typingSpeed)
+
+            // done typing, clearing the document
+            await textEditor.edit(builder => {
+                builder.replace(new vscode.Range(new vscode.Position(0, 0), doc.positionAt(doc.getText().length)), '')
+            })
+
+            // done clearing, close the document
+            await vscode.commands.executeCommand('workbench.action.closeActiveEditor')
+        })
+    })
+}
+
+export const analyzeData = (truth: string, outputFile: string) => {
+    const recommendations = InlineCompletionService.instance.flushRecommendationEntry()
+    const lines = truth.split(/\r?\n/)
+    recommendations.forEach(reco => {
+        const numberOfLines = reco.recommendation.split(/\r?\n/).length as number
+        const truthLines = []
+        let i = reco.lineNumber as number
+
+        // saveToJson(reco.recommendation, truth)
+        // const endLine = Math.min((reco.lineNumber as number) + numberOfLines, lines.length)
+        while (i < (reco.lineNumber as number) + numberOfLines && i < lines.length) {
+            if (i === reco.lineNumber && reco.offset) {
+                const line = lines[i]
+                // console.log(line)
+                const startingIndex = reco.offset >= line.length ? line.length - 1 : reco.offset
+                truthLines.push(line.slice(startingIndex))
+            } else {
+                truthLines.push(lines[i])
+            }
+            i++
+        }
+        reco.groundTruth = truthLines.join('\n')
+        reco.source = truth
+    })
+
+    return recommendations
+}
+
+function sampleData(cases: string[], sampledSize: number | undefined): CodeSnippet[] {
+    const result: CodeSnippet[] = []
+
+    if (sampledSize && sampledSize > 0) {
+        sampledSize = Math.min(sampledSize, cases.length)
+
+        const randomIndexes = new Set<number>()
+        while (randomIndexes.size < sampledSize) {
+            randomIndexes.add(randomIntegerBetween(0, cases.length))
+        }
+        randomIndexes.forEach(i => {
+            const content = JSON.parse(cases[i])
+            result.push({ input: `${content.prompt}${content.groundtruth}` })
+        })
+    } else {
+        for (let i = 0; i < cases.length; i++) {
+            const content = JSON.parse(cases[i])
+            result.push({ input: `${content.prompt}${content.groundtruth}` })
+        }
+    }
+
+    return result
+}
+
+const typeSimulation = async (text: string, editor: vscode.TextEditor, speed: number) => {
     let newEnd = new vscode.Position(0, 0)
 
     const tokens = text.split('')
@@ -83,27 +138,44 @@ const typeSimulation = async (text: string, editor: vscode.TextEditor, speed: nu
     await editor.edit(editbuilder => {
         editbuilder.replace(new vscode.Range(new vscode.Position(0, 0), newEnd), '')
     })
-    mapPrompt(text, outputPath)
 }
 
-export const mapPrompt = (truth: string, outputFile: string) => {
-    const recommendations = JSON.parse(fs.readFileSync(outputFile).toString())
-    const lines = truth.split(/\r?\n/)
-    recommendations.forEach((reco: any) => {
-        const numberOfLines = reco.recommendation.split(/\r?\n/).length as number
-        const truthLines = []
-        let i = reco.lineNumber as number
-        while (i < (reco.lineNumber as number) + numberOfLines) {
-            if (i === reco.lineNumber && reco.character) {
-                const line = lines[i]
-                const startingIndex = reco.character >= line.length ? line.length - 1 : reco.character
-                truthLines.push(line.slice(startingIndex))
-            } else {
-                truthLines.push(lines[i])
-            }
-            i++
-        }
-        reco.groundTruth = truthLines.join('\n')
-    })
-    fs.writeFileSync(outputFile, JSON.stringify(recommendations))
+const checkLanguage = (str: string) => {
+    if (str.includes('javascript')) {
+        return 'javascript'
+    } else if (str.includes('python')) {
+        return 'python'
+    } else if (str.includes('java')) {
+        return 'java'
+    } else if (str.includes('csharp')) {
+        return 'csharp'
+    } else if (str.includes('typescript')) {
+        return 'typescript'
+    } else {
+        new Error('can not map file name to corresponding language.........')
+    }
+}
+
+function saveToJson(recommendation: string, truth: string) {
+    const fileName = '/Users/xshaohua/Desktop/simulation/output/comparison.json'
+    if (!fileName || typeof fileName !== 'string') {
+        return
+    }
+    const newEntry = [
+        {
+            recommendation,
+            truth,
+        },
+    ]
+    if (fs.existsSync(fileName)) {
+        const data = JSON.parse(fs.readFileSync(fileName, 'utf-8').toString())
+        fs.writeFileSync(fileName, JSON.stringify([...data, ...newEntry]))
+    } else {
+        fs.writeFileSync(fileName, JSON.stringify(newEntry))
+    }
+}
+
+// min(inclusive); max(exclusive)
+function randomIntegerBetween(min: number, max: number) {
+    return Math.floor(Math.random() * (max - min) + min)
 }
