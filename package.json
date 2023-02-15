@@ -313,6 +313,10 @@
                     "default": "",
                     "description": "Provide the ABSOLUTE path which is used to store simulation input file."
                 },
+                "aws.codewhisperer.simulationSampledSize": {
+                    "type": "integer",
+                    "description": ""
+                },
                 "aws.codeWhisperer.simulationTypingSpeed": {
                     "type": "integer",
                     "default": 60,
