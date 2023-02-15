@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import * as fs from 'fs-extra'
+import * as fuzz from 'fuzzball'
 import * as vscode from 'vscode'
 import { sleep } from '../../shared/utilities/timeoutUtils'
 // import { ExtContext } from '../../shared/extensions'
 import { Commands } from '../../shared/vscode/commands2'
-import { InlineCompletion } from '../service/inlineCompletion'
 import { InlineCompletionService, RecommendationEntry } from '../service/inlineCompletionService'
 
 interface CodeSnippet {
@@ -87,6 +87,13 @@ const attachGroundTruth = (truth: string, outputFile: string) => {
         }
         reco.groundTruth = truthLines.join('\n')
         reco.source = truth
+        if (reco.groundTruth === reco.recommendation) {
+            reco.isExactMatch = true
+            reco.similarity = 1
+        } else {
+            reco.isExactMatch = false
+            reco.similarity = calculateDistance(reco.groundTruth, reco.recommendation)
+        }
     })
 
     return recommendations
@@ -150,4 +157,9 @@ const typeSimulation = async (text: string, editor: vscode.TextEditor, speed: nu
 // min(inclusive); max(exclusive)
 function randomIntegerBetween(min: number, max: number) {
     return Math.floor(Math.random() * (max - min) + min)
+}
+
+const calculateDistance = (recommendation: string, truth: string) => {
+    const ratio = fuzz.ratio(recommendation, truth)
+    return ratio / 100
 }
