@@ -12,6 +12,7 @@ import { InlineCompletionService, RecommendationEntry } from '../service/inlineC
 
 interface CodeSnippet {
     input: string
+    language: string
 }
 
 export const startSimulation = Commands.declare('aws.codeWhisperer.simulate', () => async () => {
@@ -28,28 +29,28 @@ export const startSimulation = Commands.declare('aws.codeWhisperer.simulate', ()
     const cases = fileContents.split(/\r?\n/)
     const sampledCases: CodeSnippet[] = sampleData(cases, sampledSize)
 
-    const mylanguage = checkLanguage(inputPath)
+    try {
+        let results: RecommendationEntry[] = []
 
-    if (mylanguage) {
-        try {
-            let results: RecommendationEntry[] = []
+        for (const codeSample of sampledCases) {
+            // start typing and collect telemetry data
+            await startTyping(codeSample, typingSpeed)
 
-            for (const codeSample of sampledCases) {
-                await collectData(codeSample, mylanguage, typingSpeed)
-                const result = analyzeData(codeSample.input, outputPath)
-                results = [...results, ...result]
-            }
-
-            fs.writeFileSync(outputPath, JSON.stringify(results))
-        } finally {
-            console.error('error')
+            // attach ground truth to the data collected from startTyping(...)
+            const result = attachGroundTruth(codeSample.input, outputPath)
+            results = [...results, ...result]
         }
+
+        fs.writeFileSync(outputPath, JSON.stringify(results))
+    } finally {
+        console.error('error')
     }
 })
 
-async function collectData(codeCase: CodeSnippet, language: string, typingSpeed: number) {
-    await vscode.workspace.openTextDocument({ language: language }).then(async doc => {
+async function startTyping(codeCase: CodeSnippet, typingSpeed: number) {
+    await vscode.workspace.openTextDocument({ language: codeCase.language }).then(async doc => {
         await vscode.window.showTextDocument(doc, vscode.ViewColumn.One, false).then(async textEditor => {
+            // open a temp document, start typing the content
             await typeSimulation(codeCase.input, textEditor, typingSpeed)
 
             // done typing, clearing the document
@@ -63,7 +64,7 @@ async function collectData(codeCase: CodeSnippet, language: string, typingSpeed:
     })
 }
 
-export const analyzeData = (truth: string, outputFile: string) => {
+const attachGroundTruth = (truth: string, outputFile: string) => {
     const recommendations = InlineCompletionService.instance.flushRecommendationEntry()
     const lines = truth.split(/\r?\n/)
     recommendations.forEach(reco => {
@@ -103,12 +104,18 @@ function sampleData(cases: string[], sampledSize: number | undefined): CodeSnipp
         }
         randomIndexes.forEach(i => {
             const content = JSON.parse(cases[i])
-            result.push({ input: `${content.prompt}${content.groundtruth}` })
+            result.push({
+                input: `${content.prompt}${content.groundtruth}`,
+                language: content.metadata.source_metadata.identified_language as string,
+            })
         })
     } else {
         for (let i = 0; i < cases.length; i++) {
             const content = JSON.parse(cases[i])
-            result.push({ input: `${content.prompt}${content.groundtruth}` })
+            result.push({
+                input: `${content.prompt}${content.groundtruth}`,
+                language: content.metadata.source_metadata.identified_language as string,
+            })
         }
     }
 
@@ -140,42 +147,43 @@ const typeSimulation = async (text: string, editor: vscode.TextEditor, speed: nu
     })
 }
 
-const checkLanguage = (str: string) => {
-    if (str.includes('javascript')) {
-        return 'javascript'
-    } else if (str.includes('python')) {
-        return 'python'
-    } else if (str.includes('java')) {
-        return 'java'
-    } else if (str.includes('csharp')) {
-        return 'csharp'
-    } else if (str.includes('typescript')) {
-        return 'typescript'
-    } else {
-        new Error('can not map file name to corresponding language.........')
-    }
-}
-
-function saveToJson(recommendation: string, truth: string) {
-    const fileName = '/Users/xshaohua/Desktop/simulation/output/comparison.json'
-    if (!fileName || typeof fileName !== 'string') {
-        return
-    }
-    const newEntry = [
-        {
-            recommendation,
-            truth,
-        },
-    ]
-    if (fs.existsSync(fileName)) {
-        const data = JSON.parse(fs.readFileSync(fileName, 'utf-8').toString())
-        fs.writeFileSync(fileName, JSON.stringify([...data, ...newEntry]))
-    } else {
-        fs.writeFileSync(fileName, JSON.stringify(newEntry))
-    }
-}
-
 // min(inclusive); max(exclusive)
 function randomIntegerBetween(min: number, max: number) {
     return Math.floor(Math.random() * (max - min) + min)
 }
+
+// const checkLanguage = (str: string) => {
+
+//     if (str.includes('javascript')) {
+//         return 'javascript'
+//     } else if (str.includes('python')) {
+//         return 'python'
+//     } else if (str.includes('java')) {
+//         return 'java'
+//     } else if (str.includes('csharp')) {
+//         return 'csharp'
+//     } else if (str.includes('typescript')) {
+//         return 'typescript'
+//     } else {
+//         new Error('can not map file name to corresponding language.........')
+//     }
+// }
+
+// function saveToJson(recommendation: string, truth: string) {
+//     const fileName = '/Users/xshaohua/Desktop/simulation/output/comparison.json'
+//     if (!fileName || typeof fileName !== 'string') {
+//         return
+//     }
+//     const newEntry = [
+//         {
+//             recommendation,
+//             truth,
+//         },
+//     ]
+//     if (fs.existsSync(fileName)) {
+//         const data = JSON.parse(fs.readFileSync(fileName, 'utf-8').toString())
+//         fs.writeFileSync(fileName, JSON.stringify([...data, ...newEntry]))
+//     } else {
+//         fs.writeFileSync(fileName, JSON.stringify(newEntry))
+//     }
+// }
