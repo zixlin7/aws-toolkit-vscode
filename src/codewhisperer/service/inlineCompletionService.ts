@@ -35,6 +35,7 @@ export interface RecommendationEntry {
     language: string
     completionType: CodewhispererCompletionType
     source: string | undefined
+    leftFileContext: string | undefined
 }
 
 class CWInlineCompletionItemProvider implements vscode.InlineCompletionItemProvider {
@@ -404,15 +405,14 @@ export class InlineCompletionService {
         }
         this.setCodeWhispererStatusBarOk()
         if (RecommendationHandler.instance.recommendations.length > 0) {
-            const leftConext = EditorContext.getLeftContext(editor, RecommendationHandler.instance.startPos.line)
-
             this.cacheRecommendationEntry(
                 RecommendationHandler.instance.recommendations[0].content,
                 RecommendationHandler.instance.startPos.line,
                 RecommendationHandler.instance.startPos.character,
                 TelemetryHelper.instance.CodeWhispererAutomatedtriggerType,
                 editor.document.languageId,
-                TelemetryHelper.instance.completionType
+                TelemetryHelper.instance.completionType,
+                RecommendationHandler.instance.lastRequest?.fileContext.leftFileContent
             )
         }
         if (triggerType === 'OnDemand' && RecommendationHandler.instance.recommendations.length === 0) {
@@ -431,7 +431,8 @@ export class InlineCompletionService {
         character: number,
         triggerType: string,
         language: string,
-        completionType: CodewhispererCompletionType
+        completionType: CodewhispererCompletionType,
+        leftFileContext: string | undefined
     ) {
         this.recommendationEntries.push({
             recommendation: recommendation,
@@ -442,6 +443,7 @@ export class InlineCompletionService {
             language: language,
             completionType: completionType,
             source: undefined,
+            leftFileContext: leftFileContext,
         })
     }
 

@@ -31,6 +31,7 @@ import {
 } from '../../shared/telemetry/telemetry'
 import { CodeWhispererCodeCoverageTracker } from '../tracker/codewhispererCodeCoverageTracker'
 import globals from '../../shared/extensionGlobals'
+import CodeWhispererClient = require('../client/codewhispererclient')
 
 /**
  * This class is for getRecommendation/listRecommendation API calls and its states
@@ -53,6 +54,10 @@ export class RecommendationHandler {
     public isGenerateRecommendationInProgress: boolean
     private _onDidReceiveRecommendation: vscode.EventEmitter<void> = new vscode.EventEmitter<void>()
     public readonly onDidReceiveRecommendation: vscode.Event<void> = this._onDidReceiveRecommendation.event
+    public lastRequest:
+        | codewhispererClient.ListRecommendationsRequest
+        | codewhispererClient.GenerateRecommendationsRequest
+        | undefined
 
     constructor() {
         this.requestId = ''
@@ -313,6 +318,7 @@ export class RecommendationHandler {
         this.sessionId = sessionId
         this.nextToken = nextToken
         this.errorCode = errorCode
+        this.lastRequest = req
     }
 
     cancelPaginatedRequest() {
