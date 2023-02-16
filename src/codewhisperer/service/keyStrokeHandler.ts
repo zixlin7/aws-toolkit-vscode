@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import * as os from 'os'
 import * as vscode from 'vscode'
 import { DefaultCodeWhispererClient } from '../client/codewhisperer'
 import * as CodeWhispererConstants from '../models/constants'
@@ -16,6 +17,8 @@ import { getTabSizeSetting } from '../../shared/utilities/editorUtilities'
 import { isInlineCompletionEnabled } from '../util/commonUtil'
 import { InlineCompletionService } from './inlineCompletionService'
 import { TelemetryHelper } from '../util/telemetryHelper'
+import { getShouldTrigger } from '../util/coefficients'
+import { extractContextForCodeWhisperer } from '../util/editorContext'
 
 const performance = globalThis.performance ?? require('perf_hooks').performance
 
@@ -118,11 +121,11 @@ export class KeyStrokeHandler {
                 }
             }
 
-            let triggerType: CodewhispererAutomatedTriggerType | undefined
+            let triggerType: CodewhispererAutomatedTriggerType | undefined | 'Classifier'
             const changedSource = new DefaultDocumentChangedType(event.contentChanges).checkChangeSource()
-            if ([DocumentChangedSource.RegularKey].includes(changedSource)) {
-                this.startIdleTimeTriggerTimer(event, editor, client, config)
-            }
+            // if ([DocumentChangedSource.RegularKey].includes(changedSource)) {
+            //     this.startIdleTimeTriggerTimer(event, editor, client, config)
+            // }
             switch (changedSource) {
                 case DocumentChangedSource.EnterKey: {
                     triggerType = 'Enter'
@@ -144,7 +147,12 @@ export class KeyStrokeHandler {
                 }
             }
 
-            if (triggerType) {
+            if (editor.document.languageId === 'python' && this.checkFromClassifier(event, editor, triggerType)) {
+                triggerType = 'Classifier'
+            }
+
+            if (triggerType === 'Classifier') {
+                console.log('in trigger')
                 this.invokeAutomatedTrigger(triggerType, editor, client, config)
             }
         } catch (error) {
@@ -153,8 +161,29 @@ export class KeyStrokeHandler {
         }
     }
 
+    checkFromClassifier(
+        event: vscode.TextDocumentChangeEvent,
+        editor: vscode.TextEditor,
+        autoTriggerType: string | undefined
+    ) {
+        const fileContext = extractContextForCodeWhisperer(editor)
+        const osPlatform = os.platform()
+        const char = event.contentChanges[0].text
+        const lineNum = editor.selection.active.line
+        const offSet = editor.selection.active.character
+        return getShouldTrigger(
+            fileContext.leftFileContent,
+            fileContext.rightFileContent,
+            osPlatform,
+            autoTriggerType,
+            char,
+            lineNum,
+            offSet
+        )
+    }
+
     async invokeAutomatedTrigger(
-        autoTriggerType: CodewhispererAutomatedTriggerType,
+        autoTriggerType: CodewhispererAutomatedTriggerType | 'Classifier',
         editor: vscode.TextEditor,
         client: DefaultCodeWhispererClient,
         config: ConfigurationEntry

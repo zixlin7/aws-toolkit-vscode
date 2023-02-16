@@ -133,7 +133,7 @@ export class RecommendationHandler {
         editor: vscode.TextEditor,
         triggerType: CodewhispererTriggerType,
         config: ConfigurationEntry,
-        autoTriggerType?: CodewhispererAutomatedTriggerType,
+        autoTriggerType?: CodewhispererAutomatedTriggerType | 'Classifier',
         pagination: boolean = true,
         page: number = 0
     ) {

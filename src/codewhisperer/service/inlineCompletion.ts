@@ -327,7 +327,7 @@ export class InlineCompletion {
         editor: vscode.TextEditor,
         triggerType: CodewhispererTriggerType,
         config: ConfigurationEntry,
-        autoTriggerType?: CodewhispererAutomatedTriggerType
+        autoTriggerType?: CodewhispererAutomatedTriggerType | 'Classifier'
     ) {
         RecommendationHandler.instance.reportUserDecisionOfRecommendation(editor, -1)
         RecommendationHandler.instance.clearRecommendations()
