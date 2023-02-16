@@ -369,7 +369,7 @@ export class InlineCompletionService {
         editor: vscode.TextEditor,
         triggerType: CodewhispererTriggerType,
         config: ConfigurationEntry,
-        autoTriggerType?: CodewhispererAutomatedTriggerType
+        autoTriggerType?: CodewhispererAutomatedTriggerType | 'Classifier'
     ) {
         if (vsCodeState.isCodeWhispererEditing || this._isPaginationRunning || this.isSuggestionVisible()) {
             return

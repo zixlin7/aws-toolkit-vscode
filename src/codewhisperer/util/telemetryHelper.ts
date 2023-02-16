@@ -23,7 +23,7 @@ export class TelemetryHelper {
     /**
      * Auto Trigger Type for getting event of Automated Trigger
      */
-    public CodeWhispererAutomatedtriggerType: CodewhispererAutomatedTriggerType
+    public CodeWhispererAutomatedtriggerType: CodewhispererAutomatedTriggerType | 'Classifier'
     /**
      * completion Type of the CodeWhisperer recommendation, line vs block
      */
@@ -162,8 +162,8 @@ export class TelemetryHelper {
 
     /** This method is assumed to be invoked first at the start of execution **/
     public setInvokeSuggestionStartTime() {
-         this.resetClientComponentLatencyTime()
-         this.invokeSuggestionStartTime = performance.now()
+        this.resetClientComponentLatencyTime()
+        this.invokeSuggestionStartTime = performance.now()
     }
 
     public setFetchCredentialStartTime() {
