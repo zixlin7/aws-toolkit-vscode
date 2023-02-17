@@ -15,7 +15,7 @@ import { RecommendationHandler } from './recommendationHandler'
 import { CodewhispererAutomatedTriggerType } from '../../shared/telemetry/telemetry'
 import { getTabSizeSetting } from '../../shared/utilities/editorUtilities'
 import { isInlineCompletionEnabled } from '../util/commonUtil'
-import { InlineCompletionService } from './inlineCompletionService'
+import { InlineCompletionService, normalizeOsName } from './inlineCompletionService'
 import { TelemetryHelper } from '../util/telemetryHelper'
 import { getShouldTrigger } from '../util/coefficients'
 import { extractContextForCodeWhisperer } from '../util/editorContext'
@@ -152,7 +152,6 @@ export class KeyStrokeHandler {
             }
 
             if (triggerType === 'Classifier') {
-                console.log('in trigger')
                 this.invokeAutomatedTrigger(triggerType, editor, client, config)
             }
         } catch (error) {
@@ -167,12 +166,12 @@ export class KeyStrokeHandler {
         autoTriggerType: string | undefined
     ) {
         const fileContext = extractContextForCodeWhisperer(editor)
-        const osPlatform = os.platform()
+        const osPlatform = normalizeOsName(os.platform(), os.version())
         const char = event.contentChanges[0].text
         const lineNum = editor.selection.active.line
         const offSet = editor.selection.active.character
         const triggerThreshold = vscode.workspace
-            .getConfiguration('aws.codewhisperer')
+            .getConfiguration('aws.codeWhisperer')
             .get('simulationThreshold') as number
         return getShouldTrigger(
             fileContext.leftFileContent,
