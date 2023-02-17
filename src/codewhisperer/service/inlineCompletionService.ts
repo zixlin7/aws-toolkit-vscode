@@ -2,6 +2,7 @@
  * Copyright 2022 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
+import * as os from 'os'
 import * as vscode from 'vscode'
 import { ConfigurationEntry, vsCodeState } from '../models/model'
 import * as CodeWhispererConstants from '../models/constants'
@@ -37,6 +38,7 @@ export interface RecommendationEntry {
     timestamp: number
     isExactMatch: boolean
     similarity: number
+    osPlatform: string
 }
 
 class CWInlineCompletionItemProvider implements vscode.InlineCompletionItemProvider {
@@ -414,7 +416,8 @@ export class InlineCompletionService {
                 editor.document.languageId,
                 TelemetryHelper.instance.completionType,
                 RecommendationHandler.instance.lastRequest?.fileContext.leftFileContent,
-                Date.now()
+                Date.now(),
+                os.platform()
             )
         }
         if (triggerType === 'OnDemand' && RecommendationHandler.instance.recommendations.length === 0) {
@@ -435,7 +438,8 @@ export class InlineCompletionService {
         language: string,
         completionType: CodewhispererCompletionType,
         leftFileContext: string | undefined,
-        timestamp: number
+        timestamp: number,
+        osPlatform: string
     ) {
         this.recommendationEntries.push({
             recommendation: recommendation,
@@ -450,6 +454,7 @@ export class InlineCompletionService {
             isExactMatch: false,
             similarity: 0,
             timestamp,
+            osPlatform,
         })
     }
 

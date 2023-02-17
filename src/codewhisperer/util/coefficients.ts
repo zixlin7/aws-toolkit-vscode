@@ -182,7 +182,7 @@ const lengthOfLeftPrevCoefficient = -0.4205
 const lengthofRightCoefficient = -0.6022
 
 // classifier threshold
-const threshold = 0.5
+// const threshold = 0.5
 
 // coefficient and intercept of logistic regression classifier
 const intercept = 0.59138195
@@ -204,7 +204,8 @@ export const getShouldTrigger = (
     triggerType: string | undefined,
     char: string,
     lineNum: number,
-    cursorOffset: number
+    cursorOffset: number,
+    triggerThreshold: number
 ) => {
     const leftContextLines = leftContext.split(/\r?\n/)
     const lengthOfLeftCurrent = leftContextLines[leftContextLines.length - 1].length
@@ -224,7 +225,7 @@ export const getShouldTrigger = (
         charCoefficient +
         intercept
 
-    const shouldTrigger = sigmoid(result) > threshold
+    const shouldTrigger = sigmoid(result) > triggerThreshold
     return shouldTrigger
 }
 

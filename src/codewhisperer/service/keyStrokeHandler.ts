@@ -171,6 +171,9 @@ export class KeyStrokeHandler {
         const char = event.contentChanges[0].text
         const lineNum = editor.selection.active.line
         const offSet = editor.selection.active.character
+        const triggerThreshold = vscode.workspace
+            .getConfiguration('aws.codewhisperer')
+            .get('simulationThreshold') as number
         return getShouldTrigger(
             fileContext.leftFileContent,
             fileContext.rightFileContent,
@@ -178,7 +181,8 @@ export class KeyStrokeHandler {
             autoTriggerType,
             char,
             lineNum,
-            offSet
+            offSet,
+            triggerThreshold
         )
     }
 
