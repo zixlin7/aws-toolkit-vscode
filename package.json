@@ -268,10 +268,15 @@
                     "type": "integer",
                     "description": ""
                 },
-                "aws.codeWhisperer.simulationTypingSpeed": {
-                    "type": "integer",
-                    "default": 60,
-                    "description": "Provide the desired typing speed for simulation."
+                "aws.codeWhisperer.simulationTypingInterval": {
+                    "type": "number",
+                    "default": 1,
+                    "description": "Provide the desired typing interval for simulation."
+                },
+                "aws.codeWhisperer.simulationThreshold": {
+                    "type": "number",
+                    "default": 0.5,
+                    "description": "The triggering threshold for the classifier"
                 },
                 "aws.resources.enabledResources": {
                     "type": "array",
