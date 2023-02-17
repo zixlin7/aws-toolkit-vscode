@@ -41,6 +41,33 @@ export interface RecommendationEntry {
     osPlatform: string
 }
 
+export const normalizeOsName = (name: string, version: string | undefined): string => {
+    const lowercaseName = name.toLowerCase()
+    if (lowercaseName.includes('windows')) {
+        if (!version) {
+            return 'Windows'
+        } else if (version.includes('Windows NT 10') || version.startsWith('10')) {
+            return 'Windows 10'
+        } else if (version.includes('6.1')) {
+            return 'Windows 7'
+        } else if (version.includes('6.3')) {
+            return 'Windows 8.1'
+        } else {
+            return 'Windows'
+        }
+    } else if (
+        lowercaseName.includes('macos') ||
+        lowercaseName.includes('mac os') ||
+        lowercaseName.includes('darwin')
+    ) {
+        return 'Mac OS X'
+    } else if (lowercaseName.includes('linux')) {
+        return 'Linux'
+    } else {
+        return name
+    }
+}
+
 class CWInlineCompletionItemProvider implements vscode.InlineCompletionItemProvider {
     private activeItemIndex: number | undefined
     public nextMove: number
@@ -408,6 +435,7 @@ export class InlineCompletionService {
         }
         this.setCodeWhispererStatusBarOk()
         if (RecommendationHandler.instance.recommendations.length > 0) {
+            const osPlatform = normalizeOsName(os.platform(), os.version())
             this.cacheRecommendationEntry(
                 RecommendationHandler.instance.recommendations[0].content,
                 RecommendationHandler.instance.startPos.line,
@@ -417,7 +445,7 @@ export class InlineCompletionService {
                 TelemetryHelper.instance.completionType,
                 RecommendationHandler.instance.lastRequest?.fileContext.leftFileContent,
                 Date.now(),
-                os.platform()
+                osPlatform
             )
         }
         if (triggerType === 'OnDemand' && RecommendationHandler.instance.recommendations.length === 0) {
