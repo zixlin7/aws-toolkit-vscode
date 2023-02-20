@@ -15,11 +15,14 @@ interface CodeSnippet {
     language: string
 }
 
+const statusBar: vscode.StatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left)
+
 export const startSimulation = Commands.declare('aws.codeWhisperer.simulate', () => async () => {
     const inputPath = vscode.workspace.getConfiguration('aws.codeWhisperer').get('simulationInput') as string
     const outputPath = vscode.workspace.getConfiguration('aws.codeWhisperer').get('simulationOutput') as string
     const typingSpeed = vscode.workspace.getConfiguration('aws.codeWhisperer').get('simulationTypingSpeed') as number
     const sampledSize = vscode.workspace.getConfiguration('aws.codewhisperer').get('simulationSampledSize') as number
+    const sampler = vscode.workspace.getConfiguration('aws.codewhisperer').get('simulationSampler') as boolean
 
     if (!inputPath || typeof inputPath !== 'string') {
         return
@@ -27,12 +30,15 @@ export const startSimulation = Commands.declare('aws.codeWhisperer.simulate', ()
 
     const fileContents = fs.readFileSync(inputPath, 'utf-8')
     const cases = fileContents.split(/\r?\n/)
-    const sampledCases: CodeSnippet[] = sampleData(cases, sampledSize)
+    const sampledCases: CodeSnippet[] = sampleData(cases, sampledSize, sampler)
 
     try {
         let results: RecommendationEntry[] = []
 
-        for (const codeSample of sampledCases) {
+        for (let i = 0; i < sampledCases.length; i++) {
+            const codeSample = sampledCases[i]
+            statusBar.text = `Simulation: ${i + 1}/${sampledCases.length}`
+            statusBar.show()
             // start typing and collect telemetry data
             await startTyping(codeSample, typingSpeed)
 
@@ -99,10 +105,10 @@ const attachGroundTruth = (truth: string, outputFile: string) => {
     return recommendations
 }
 
-function sampleData(cases: string[], sampledSize: number | undefined): CodeSnippet[] {
+function sampleData(cases: string[], sampledSize: number, randomSampler: boolean): CodeSnippet[] {
     const result: CodeSnippet[] = []
 
-    if (sampledSize && sampledSize > 0) {
+    if (randomSampler && sampledSize > 0 && sampledSize < cases.length) {
         sampledSize = Math.min(sampledSize, cases.length)
 
         const randomIndexes = new Set<number>()
@@ -117,7 +123,14 @@ function sampleData(cases: string[], sampledSize: number | undefined): CodeSnipp
             })
         })
     } else {
-        for (let i = 0; i < cases.length; i++) {
+        let size: number
+        if (sampledSize <= 0) {
+            size = cases.length
+        } else {
+            size = Math.min(cases.length, sampledSize)
+        }
+
+        for (let i = 0; i < size; i++) {
             const content = JSON.parse(cases[i])
             result.push({
                 input: `${content.prompt}${content.groundtruth}`,
