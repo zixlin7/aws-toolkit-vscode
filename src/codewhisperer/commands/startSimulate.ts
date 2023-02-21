@@ -20,7 +20,7 @@ const statusBar: vscode.StatusBarItem = vscode.window.createStatusBarItem(vscode
 export const startSimulation = Commands.declare('aws.codeWhisperer.simulate', () => async () => {
     const inputPath = vscode.workspace.getConfiguration('aws.codeWhisperer').get('simulationInput') as string
     const outputPath = vscode.workspace.getConfiguration('aws.codeWhisperer').get('simulationOutput') as string
-    const typingSpeed = vscode.workspace.getConfiguration('aws.codeWhisperer').get('simulationTypingSpeed') as number
+    const typingSpeed = vscode.workspace.getConfiguration('aws.codeWhisperer').get('simulationTypingInterval') as number
     const sampledSize = vscode.workspace.getConfiguration('aws.codewhisperer').get('simulationSampledSize') as number
     const sampler = vscode.workspace.getConfiguration('aws.codewhisperer').get('simulationSampler') as boolean
 
@@ -48,8 +48,9 @@ export const startSimulation = Commands.declare('aws.codeWhisperer.simulate', ()
         }
 
         fs.writeFileSync(outputPath, JSON.stringify(results))
+    } catch (e) {
+        console.error(e)
     } finally {
-        console.error('error')
     }
 })
 
@@ -58,6 +59,8 @@ async function startTyping(codeCase: CodeSnippet, typingSpeed: number) {
         await vscode.window.showTextDocument(doc, vscode.ViewColumn.One, false).then(async textEditor => {
             // open a temp document, start typing the content
             await typeSimulation(codeCase.input, textEditor, typingSpeed)
+
+            await sleep(10000)
 
             // done typing, clearing the document
             await textEditor.edit(builder => {
