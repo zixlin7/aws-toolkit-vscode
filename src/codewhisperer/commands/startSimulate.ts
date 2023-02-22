@@ -60,8 +60,6 @@ async function startTyping(codeCase: CodeSnippet, typingSpeed: number) {
             // open a temp document, start typing the content
             await typeSimulation(codeCase.input, textEditor, typingSpeed)
 
-            await sleep(10000)
-
             // done typing, clearing the document
             await textEditor.edit(builder => {
                 builder.replace(new vscode.Range(new vscode.Position(0, 0), doc.positionAt(doc.getText().length)), '')
