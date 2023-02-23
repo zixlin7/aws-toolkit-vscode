@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import * as vscode from 'vscode'
+
 /* eslint-disable @typescript-eslint/naming-convention */
 
 const keyWordCoefficientMap: Record<string, number> = {
@@ -240,6 +242,13 @@ export const getShouldTrigger = (
     cursorOffset: number,
     triggerThreshold: number
 ) => {
+    const threshold =
+        100 - (vscode.workspace.getConfiguration('aws.codewhisperer').get('classifierInvocationProbability') as number)
+    const myRandom = randomIntegerBetween(0, 101)
+    if (myRandom < threshold) {
+        return
+    }
+
     const leftContextLines = leftContext.split(/\r?\n/)
     const leftContextAtCurrentLine = leftContextLines[leftContextLines.length - 1]
     const tokens = leftContextAtCurrentLine.trim().split(' ')
@@ -269,4 +278,9 @@ export const getShouldTrigger = (
 
 const sigmoid = (x: number) => {
     return 1 / (1 + Math.exp(-x))
+}
+
+// min(inclusive); max(exclusive)
+function randomIntegerBetween(min: number, max: number) {
+    return Math.floor(Math.random() * (max - min) + min)
 }
