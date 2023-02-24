@@ -147,8 +147,20 @@ export class KeyStrokeHandler {
                 }
             }
 
-            if (editor.document.languageId === 'python' && this.checkFromClassifier(event, editor, triggerType)) {
-                triggerType = 'Classifier'
+            switch (editor.document.languageId) {
+                case 'python': {
+                    if (this.checkFromClassifier(event, editor, triggerType)) {
+                        triggerType = 'Classifier'
+                    }
+
+                    break
+                }
+                case 'java': {
+                    if (this.checkFromClassifier(event, editor, triggerType)) {
+                        triggerType = 'Classifier'
+                    }
+                    break
+                }
             }
 
             if (triggerType === 'Classifier') {
