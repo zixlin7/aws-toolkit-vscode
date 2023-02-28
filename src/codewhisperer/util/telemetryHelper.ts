@@ -5,15 +5,21 @@
 import globals from '../../shared/extensionGlobals'
 
 import { runtimeLanguageContext } from './runtimeLanguageContext'
-import { RecommendationsList } from '../client/codewhisperer'
+import { Recommendation, RecommendationsList } from '../client/codewhisperer'
 import { LicenseUtil } from './licenseUtil'
-import { telemetry } from '../../shared/telemetry/telemetry'
+import { CodewhispererUserDecision, telemetry } from '../../shared/telemetry/telemetry'
 import {
     CodewhispererAutomatedTriggerType,
     CodewhispererCompletionType,
     CodewhispererSuggestionState,
     CodewhispererTriggerType,
 } from '../../shared/telemetry/telemetry'
+
+// interface CodeWhispererUserDeicisionEntry{
+//     sessionId: string
+//     recommendation: Recommendation
+//     state: CodewhispererSuggestionState
+// }
 
 export class TelemetryHelper {
     /**
@@ -35,6 +41,8 @@ export class TelemetryHelper {
 
     public startUrl: string | undefined
 
+    public decisionQueue: UserDecisionQueue = new UserDecisionQueue(5)
+
     // variables for client component latency
     private invokeSuggestionStartTime = 0
     private fetchCredentialStartTime = 0
@@ -44,6 +52,9 @@ export class TelemetryHelper {
     private allPaginationEndTime = 0
     private firstResponseRequestId = ''
     private sessionId = ''
+
+    // private previousUserDecisionStack: CodewhispererUserDecision[][] = []
+    // private sessionId2Index: Map<string, number> = new Map()
 
     constructor() {
         this.triggerType = 'OnDemand'
@@ -112,7 +123,8 @@ export class TelemetryHelper {
             if (_elem.content.length === 0) {
                 recommendationSuggestionState?.set(i, 'Empty')
             }
-            telemetry.codewhisperer_userDecision.emit({
+
+            const event = {
                 codewhispererRequestId: requestId,
                 codewhispererSessionId: sessionId ? sessionId : undefined,
                 codewhispererPaginationProgress: paginationIndex,
@@ -124,9 +136,30 @@ export class TelemetryHelper {
                 codewhispererCompletionType: this.completionType,
                 codewhispererLanguage: languageContext.language,
                 credentialStartUrl: TelemetryHelper.instance.startUrl,
-            })
+            }
+
+            telemetry.codewhisperer_userDecision.emit(event)
+            this.decisionQueue.push(event)
+            // console.log(this.decisionQueue.queue)
+            // this.aggregateUserDecision(event)
         })
     }
+
+    // public aggregateUserDecision(userDecisionEvent: CodewhispererUserDecision) {
+    //     const sessionId = userDecisionEvent.codewhispererSessionId
+    //     if (this.previousUserDecisionStack[this.previousUserDecisionStack.length - 1].codewhispererSessionId === sessionId) {
+    //         this.previousUserDecisionStack.push(userDecisionEvent)
+    //     } else {
+    //         this.sendAggregateUserDecision()
+    //         this.previousUserDecisionStack.push(userDecisionEvent)
+    //     }
+    // }
+
+    // private sendAggregateUserDecision() {
+    //     // process the stack and sent out aggregated user decision
+
+    //     //
+    // }
 
     public getSuggestionState(
         i: number,
@@ -227,5 +260,91 @@ export class TelemetryHelper {
             credentialStartUrl: this.startUrl,
         })
         this.resetClientComponentLatencyTime()
+    }
+}
+
+class UserDecisionQueue {
+    public readonly size: number
+    private _queue: CodewhispererSuggestionState[][] = []
+    private _sessionId2Index: Map<string, number> = new Map()
+    // private _offset: number = 0
+
+    constructor(size: number) {
+        this.size = size
+    }
+
+    public get queue() {
+        return this._queue
+    }
+
+    public get sessionId2Index() {
+        return this._sessionId2Index
+    }
+
+    push(event: CodewhispererUserDecision) {
+        // check if the user decision is in the stack already
+        const sessionId = event.codewhispererSessionId
+        const decision = event.codewhispererSuggestionState
+        if (!sessionId) {
+            return
+        }
+        const index = this._sessionId2Index.get(sessionId)
+        if (index) {
+            // there is already suggestion within the same session existing in the q
+            this._queue[index].push(decision)
+        } else {
+            // the stack is full, pop the most dated one out
+            if (this._queue.length === this.size) {
+                // pop arr[0] cuz it's most dated one
+                // todo: remove staled sessionId2Index stored in the map
+                this._queue = this._queue.splice(1)
+                this._queue.push([decision])
+                this._sessionId2Index.set(sessionId, this._queue.length - 1)
+            } else {
+                this._queue.push([decision])
+                this._sessionId2Index.set(sessionId, this._queue.length - 1)
+            }
+        }
+
+        // console.log(this._queue)
+        // console.log(this._sessionId2Index)
+    }
+
+    mostRecentDecision(): CodewhispererSuggestionState | undefined {
+        if (this._queue.length === 0) {
+            return undefined
+        } else {
+            return this.aggregate(this._queue[this._queue.length - 1])
+        }
+    }
+
+    topNDecision(num: number): CodewhispererSuggestionState[] {
+        // num = Math.min(num, this._queue.length)
+        const result: CodewhispererSuggestionState[] = []
+
+        for (const suggestionState of this._queue) {
+            result.push(this.aggregate(suggestionState))
+        }
+
+        // for (let i = 0; i < num; i++) {
+        //     const triggerLevelDecision = this.aggregate(this._queue[i])
+        //     result.push(triggerLevelDecision)
+        // }
+
+        return result
+    }
+
+    // aggregate recommendation level suggestion state to trigger level suggestion state
+    private aggregate(decisions: CodewhispererSuggestionState[]): CodewhispererSuggestionState {
+        for (let i = 0; i < decisions.length; i++) {
+            const decision = decisions[i]
+            if (decision === 'Accept') {
+                return 'Accept'
+            } else if (decision === 'Reject') {
+                return 'Reject'
+            }
+        }
+
+        return 'Ignore'
     }
 }

@@ -22,7 +22,7 @@ import { isCloud9 } from '../../shared/extensionUtilities'
 import { asyncCallWithTimeout, isAwsError } from '../util/commonUtil'
 import * as codewhispererClient from '../client/codewhisperer'
 import { showTimedMessage } from '../../shared/utilities/messages'
-import { telemetry } from '../../shared/telemetry/telemetry'
+import { CodewhispererUserDecision, telemetry } from '../../shared/telemetry/telemetry'
 import {
     CodewhispererAutomatedTriggerType,
     CodewhispererCompletionType,
@@ -38,6 +38,11 @@ import globals from '../../shared/extensionGlobals'
  */
 
 const performance = globalThis.performance ?? require('perf_hooks').performance
+
+interface UserPreviousData {
+    decision: CodewhispererUserDecision
+    invocationLineNumber: number
+}
 
 export class RecommendationHandler {
     public lastInvocationTime: number
@@ -57,6 +62,8 @@ export class RecommendationHandler {
         | codewhispererClient.ListRecommendationsRequest
         | codewhispererClient.GenerateRecommendationsRequest
         | undefined
+
+    private previousUserDecisionStack: CodewhispererUserDecision[] = []
 
     constructor() {
         this.requestId = ''
@@ -136,7 +143,7 @@ export class RecommendationHandler {
         autoTriggerType?: CodewhispererAutomatedTriggerType | 'Classifier',
         pagination: boolean = true,
         page: number = 0
-    ) {
+    ): Promise<Recommendation[]> {
         let recommendation: RecommendationsList = []
         let requestId = ''
         let sessionId = ''
@@ -177,6 +184,10 @@ export class RecommendationHandler {
                     ? client.listRecommendations(mappedReq)
                     : client.generateRecommendations(mappedReq)
                 shouldRecordServiceInvocation = true
+
+                console.log(TelemetryHelper.instance.decisionQueue.topNDecision(5))
+                // console.log(TelemetryHelper.instance.decisionQueue.mostRecentDecision())
+
                 const resp = await this.getServerResponse(
                     triggerType,
                     config.isManualTriggerEnabled,
@@ -320,6 +331,7 @@ export class RecommendationHandler {
         if (page === 0) {
             this.lastRequest = req
         }
+        return this.recommendations
     }
 
     cancelPaginatedRequest() {

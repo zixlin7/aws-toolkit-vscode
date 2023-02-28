@@ -7,7 +7,7 @@ import * as vscode from 'vscode'
 import { ConfigurationEntry, vsCodeState } from '../models/model'
 import * as CodeWhispererConstants from '../models/constants'
 import { ReferenceInlineProvider } from './referenceInlineProvider'
-import { DefaultCodeWhispererClient, Recommendation } from '../client/codewhisperer'
+import { DefaultCodeWhispererClient, Recommendation, RecommendationsList } from '../client/codewhisperer'
 import { RecommendationHandler } from './recommendationHandler'
 import {
     telemetry,
@@ -409,8 +409,9 @@ export class InlineCompletionService {
         this.documentUri = editor.document.uri
         try {
             let page = 0
+
             while (page < this.maxPage) {
-                await RecommendationHandler.instance.getRecommendations(
+                const paginatedRecommendations = await RecommendationHandler.instance.getRecommendations(
                     client,
                     editor,
                     triggerType,
@@ -419,6 +420,10 @@ export class InlineCompletionService {
                     true,
                     page
                 )
+
+                // console.log(`paginated recommendations(size = ${paginatedRecommendations.length}): `)
+                // console.log(paginatedRecommendations)
+
                 if (RecommendationHandler.instance.checkAndResetCancellationTokens()) {
                     RecommendationHandler.instance.reportUserDecisionOfRecommendation(editor, -1)
                     RecommendationHandler.instance.clearRecommendations()
@@ -430,6 +435,10 @@ export class InlineCompletionService {
                 }
                 page++
             }
+
+            // console.log(`session ends...`)
+            // console.log(RecommendationHandler.instance.recommendations)
+            // console.log(`**********************************`)
         } catch (error) {
             getLogger().error(`Error ${error} in getPaginatedRecommendation`)
         }
