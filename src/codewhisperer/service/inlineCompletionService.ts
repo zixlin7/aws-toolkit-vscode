@@ -410,8 +410,10 @@ export class InlineCompletionService {
         try {
             let page = 0
 
+            console.log(TelemetryHelper.instance.decisionQueue.topNDecision())
+
             while (page < this.maxPage) {
-                const paginatedRecommendations = await RecommendationHandler.instance.getRecommendations(
+                await RecommendationHandler.instance.getRecommendations(
                     client,
                     editor,
                     triggerType,
@@ -420,9 +422,6 @@ export class InlineCompletionService {
                     true,
                     page
                 )
-
-                // console.log(`paginated recommendations(size = ${paginatedRecommendations.length}): `)
-                // console.log(paginatedRecommendations)
 
                 if (RecommendationHandler.instance.checkAndResetCancellationTokens()) {
                     RecommendationHandler.instance.reportUserDecisionOfRecommendation(editor, -1)
@@ -435,10 +434,6 @@ export class InlineCompletionService {
                 }
                 page++
             }
-
-            // console.log(`session ends...`)
-            // console.log(RecommendationHandler.instance.recommendations)
-            // console.log(`**********************************`)
         } catch (error) {
             getLogger().error(`Error ${error} in getPaginatedRecommendation`)
         }

@@ -15,12 +15,6 @@ import {
     CodewhispererTriggerType,
 } from '../../shared/telemetry/telemetry'
 
-// interface CodeWhispererUserDeicisionEntry{
-//     sessionId: string
-//     recommendation: Recommendation
-//     state: CodewhispererSuggestionState
-// }
-
 export class TelemetryHelper {
     /**
      * Trigger type for getting CodeWhisperer recommendation
@@ -140,26 +134,11 @@ export class TelemetryHelper {
 
             telemetry.codewhisperer_userDecision.emit(event)
             this.decisionQueue.push(event)
-            // console.log(this.decisionQueue.queue)
-            // this.aggregateUserDecision(event)
+            if (i === recommendations.length - 1) {
+                this.decisionQueue.flush()
+            }
         })
     }
-
-    // public aggregateUserDecision(userDecisionEvent: CodewhispererUserDecision) {
-    //     const sessionId = userDecisionEvent.codewhispererSessionId
-    //     if (this.previousUserDecisionStack[this.previousUserDecisionStack.length - 1].codewhispererSessionId === sessionId) {
-    //         this.previousUserDecisionStack.push(userDecisionEvent)
-    //     } else {
-    //         this.sendAggregateUserDecision()
-    //         this.previousUserDecisionStack.push(userDecisionEvent)
-    //     }
-    // }
-
-    // private sendAggregateUserDecision() {
-    //     // process the stack and sent out aggregated user decision
-
-    //     //
-    // }
 
     public getSuggestionState(
         i: number,
@@ -267,7 +246,9 @@ class UserDecisionQueue {
     public readonly size: number
     private _queue: CodewhispererSuggestionState[][] = []
     private _sessionId2Index: Map<string, number> = new Map()
-    // private _offset: number = 0
+
+    private previousOne: Map<string, CodewhispererSuggestionState[]> = new Map()
+    private previousN: CodewhispererSuggestionState[] = []
 
     constructor(size: number) {
         this.size = size
@@ -282,32 +263,33 @@ class UserDecisionQueue {
     }
 
     push(event: CodewhispererUserDecision) {
-        // check if the user decision is in the stack already
         const sessionId = event.codewhispererSessionId
         const decision = event.codewhispererSuggestionState
         if (!sessionId) {
             return
         }
-        const index = this._sessionId2Index.get(sessionId)
-        if (index) {
-            // there is already suggestion within the same session existing in the q
-            this._queue[index].push(decision)
+
+        if (this.previousOne.has(sessionId)) {
+            this.previousOne.get(sessionId)?.push(decision)
         } else {
-            // the stack is full, pop the most dated one out
-            if (this._queue.length === this.size) {
-                // pop arr[0] cuz it's most dated one
-                // todo: remove staled sessionId2Index stored in the map
-                this._queue = this._queue.splice(1)
-                this._queue.push([decision])
-                this._sessionId2Index.set(sessionId, this._queue.length - 1)
-            } else {
-                this._queue.push([decision])
-                this._sessionId2Index.set(sessionId, this._queue.length - 1)
-            }
+            this.previousOne.set(sessionId, [decision])
+        }
+    }
+
+    flush() {
+        // assert size is strict equal to 1
+        if (this.previousOne.size !== 1) {
+            console.error('size is not correct')
+            return
         }
 
-        // console.log(this._queue)
-        // console.log(this._sessionId2Index)
+        for (const [sessionId, decisions] of this.previousOne) {
+            this.previousN.push(this.aggregate(decisions))
+            this.previousOne.delete(sessionId)
+            if (this.previousN.length > this.size) {
+                this.previousN = this.previousN.splice(1)
+            }
+        }
     }
 
     mostRecentDecision(): CodewhispererSuggestionState | undefined {
@@ -318,20 +300,8 @@ class UserDecisionQueue {
         }
     }
 
-    topNDecision(num: number): CodewhispererSuggestionState[] {
-        // num = Math.min(num, this._queue.length)
-        const result: CodewhispererSuggestionState[] = []
-
-        for (const suggestionState of this._queue) {
-            result.push(this.aggregate(suggestionState))
-        }
-
-        // for (let i = 0; i < num; i++) {
-        //     const triggerLevelDecision = this.aggregate(this._queue[i])
-        //     result.push(triggerLevelDecision)
-        // }
-
-        return result
+    topNDecision(): CodewhispererSuggestionState[] {
+        return this.previousN
     }
 
     // aggregate recommendation level suggestion state to trigger level suggestion state

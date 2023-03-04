@@ -143,7 +143,7 @@ export class RecommendationHandler {
         autoTriggerType?: CodewhispererAutomatedTriggerType | 'Classifier',
         pagination: boolean = true,
         page: number = 0
-    ): Promise<Recommendation[]> {
+    ) {
         let recommendation: RecommendationsList = []
         let requestId = ''
         let sessionId = ''
@@ -184,9 +184,6 @@ export class RecommendationHandler {
                     ? client.listRecommendations(mappedReq)
                     : client.generateRecommendations(mappedReq)
                 shouldRecordServiceInvocation = true
-
-                console.log(TelemetryHelper.instance.decisionQueue.topNDecision(5))
-                // console.log(TelemetryHelper.instance.decisionQueue.mostRecentDecision())
 
                 const resp = await this.getServerResponse(
                     triggerType,
@@ -328,10 +325,6 @@ export class RecommendationHandler {
         this.sessionId = sessionId
         this.nextToken = nextToken
         this.errorCode = errorCode
-        if (page === 0) {
-            this.lastRequest = req
-        }
-        return this.recommendations
     }
 
     cancelPaginatedRequest() {
