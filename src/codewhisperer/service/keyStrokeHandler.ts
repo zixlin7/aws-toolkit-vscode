@@ -19,6 +19,7 @@ import { InlineCompletionService, normalizeOsName } from './inlineCompletionServ
 import { TelemetryHelper } from '../util/telemetryHelper'
 import { getShouldTrigger } from '../util/coefficients'
 import { extractContextForCodeWhisperer } from '../util/editorContext'
+import { runtimeLanguageContext } from '../util/runtimeLanguageContext'
 
 const performance = globalThis.performance ?? require('perf_hooks').performance
 
@@ -35,6 +36,8 @@ export class KeyStrokeHandler {
      */
 
     private idleTriggerTimer?: NodeJS.Timer
+
+    public lastInvocationTime: number | undefined = undefined
 
     constructor() {
         this.specialChar = ''
@@ -193,7 +196,8 @@ export class KeyStrokeHandler {
             char,
             lineNum,
             offSet,
-            triggerThreshold
+            triggerThreshold,
+            runtimeLanguageContext.mapVscLanguageToCodeWhispererLanguage(editor.document.languageId)
         )
     }
 
@@ -204,6 +208,7 @@ export class KeyStrokeHandler {
         config: ConfigurationEntry
     ): Promise<void> {
         if (editor) {
+            this.lastInvocationTime = performance.now()
             if (isCloud9()) {
                 if (RecommendationHandler.instance.isGenerateRecommendationInProgress) {
                     return

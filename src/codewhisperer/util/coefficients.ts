@@ -4,8 +4,11 @@
  */
 
 import * as vscode from 'vscode'
+import { CodewhispererLanguage } from '../../shared/telemetry/telemetry'
+import { KeyStrokeHandler } from '../service/keyStrokeHandler'
+import { TelemetryHelper } from './telemetryHelper'
 
-/* eslint-disable @typescript-eslint/naming-convention */
+const performance = globalThis.performance ?? require('perf_hooks').performance
 
 // os coefficient
 const osMap: Record<string, number> = {
@@ -22,12 +25,15 @@ const triggerTypeCoefficientMap: Record<string, number> = {
     Enter: 0.134,
 }
 
-const languageMap: Record<string, number> = {
-    language_python: 0.1205,
-}
-
-const ideMap: Record<string, number> = {
-    'AWS Toolkit For VS Code': -0.0775,
+const languageMap: Record<CodewhispererLanguage, number> = {
+    python: 0.1205,
+    java: 0,
+    javascript: 0,
+    csharp: 0,
+    plaintext: 0,
+    typescript: 0,
+    tsx: 0,
+    jsx: 0,
 }
 
 // other metadata coefficient
@@ -54,37 +60,39 @@ const prevDecisionRejectCoefficient = -0.4026
 
 const prevDecisionOtherCoefficient = -0.2435
 
+const ideVscode = -0.0775
+
 // intercept of logistic regression classifier
 const intercept = -0.49550724
 
 interface normalizedCoefficients {
     cursor: number
-    line_num: number
-    len_left_cur: number
-    left_left_prev: number
-    len_right: number
-    line_diff: number
-    time_diff: number
+    lineNum: number
+    lenLeftCur: number
+    lenLeftPrev: number
+    lenRight: number
+    lineDiff: number
+    timeDiff: number
 }
 
 const maxx: normalizedCoefficients = {
     cursor: 88911.0,
-    line_num: 1997.0,
-    len_left_cur: 164.0,
-    left_left_prev: 160.0,
-    len_right: 10239.0,
-    line_diff: 349.0,
-    time_diff: 268602852.0,
+    lineNum: 1997.0,
+    lenLeftCur: 164.0,
+    lenLeftPrev: 160.0,
+    lenRight: 10239.0,
+    lineDiff: 349.0,
+    timeDiff: 268602852.0,
 }
 
 const minn: normalizedCoefficients = {
     cursor: 0.0,
-    line_num: 0.0,
-    len_left_cur: 0.0,
-    left_left_prev: 0.0,
-    len_right: 0.0,
-    line_diff: -32222.0,
-    time_diff: 0.0,
+    lineNum: 0.0,
+    lenLeftCur: 0.0,
+    lenLeftPrev: 0.0,
+    lenRight: 0.0,
+    lineDiff: -32222.0,
+    timeDiff: 0.0,
 }
 
 export const getShouldTrigger = (
@@ -95,8 +103,13 @@ export const getShouldTrigger = (
     char: string,
     lineNum: number,
     cursorOffset: number,
-    triggerThreshold: number
+    triggerThreshold: number,
+    language: CodewhispererLanguage | undefined
 ) => {
+    if (!language) {
+        return false
+    }
+
     const threshold =
         100 - (vscode.workspace.getConfiguration('aws.codewhisperer').get('classifierInvocationProbability') as number)
     const myRandom = randomIntegerBetween(0, 101)
@@ -115,19 +128,42 @@ export const getShouldTrigger = (
     const osCoefficient = osMap[os] ?? 0
     const charCoefficient = coefficients[char] ?? 0
     const keyWordCoefficient = coefficients[keyword] ?? 0
+    const languageCoefficient = languageMap[language] ?? 0
+
+    const prevoiusOneDecision = TelemetryHelper.instance.decisionQueue.mostRecentDecision()
+
+    const previousOneAccept = prevoiusOneDecision === 'Accept' ? prevDecisionAcceptCoefficient : 0
+    const previousOneReject = prevoiusOneDecision === 'Reject' ? prevDecisionRejectCoefficient : 0
+    const previousOneOther =
+        prevoiusOneDecision === 'Discard' ||
+        prevoiusOneDecision === 'Empty' ||
+        prevoiusOneDecision === 'Ignore' ||
+        prevoiusOneDecision === 'Unseen' ||
+        prevoiusOneDecision === 'Filter'
+            ? prevDecisionOtherCoefficient
+            : 0
+
+    const timeDiff = KeyStrokeHandler.instance.lastInvocationTime
+        ? performance.now() - KeyStrokeHandler.instance.lastInvocationTime
+        : performance.now() - 0
 
     const result =
-        (lengthofRightCoefficient * (lengthofRight - minn.len_right)) / (maxx.len_right - minn.len_right) +
-        (lengthOfLeftCurrentCoefficient * (lengthOfLeftCurrent - minn.len_left_cur)) /
-            (maxx.len_left_cur - minn.len_left_cur) +
-        (lengthOfLeftPrevCoefficient * (lengthOfLeftPrev - minn.left_left_prev)) /
-            (maxx.left_left_prev - minn.left_left_prev) +
-        (lineNumCoefficient * (lineNum - minn.line_num)) / (maxx.line_num - minn.line_num) +
+        (lengthofRightCoefficient * (lengthofRight - minn.lenRight)) / (maxx.lenRight - minn.lenRight) +
+        (lengthOfLeftCurrentCoefficient * (lengthOfLeftCurrent - minn.lenLeftCur)) /
+            (maxx.lenLeftCur - minn.lenLeftCur) +
+        (lengthOfLeftPrevCoefficient * (lengthOfLeftPrev - minn.lenLeftPrev)) / (maxx.lenLeftPrev - minn.lenLeftPrev) +
+        (lineNumCoefficient * (lineNum - minn.lineNum)) / (maxx.lineNum - minn.lineNum) +
         (cursorOffsetCoefficient * (cursorOffset - minn.cursor)) / (maxx.cursor - minn.cursor) +
+        (timeDiffCoefficient * (timeDiff - minn.timeDiff)) / (maxx.timeDiff - minn.timeDiff) +
+        languageCoefficient +
         osCoefficient +
         triggerTypeCoefficient +
         charCoefficient +
         keyWordCoefficient +
+        ideVscode +
+        previousOneAccept +
+        previousOneReject +
+        previousOneOther +
         intercept
 
     const shouldTrigger = sigmoid(result) > triggerThreshold

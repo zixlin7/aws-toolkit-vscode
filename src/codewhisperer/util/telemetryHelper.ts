@@ -5,7 +5,7 @@
 import globals from '../../shared/extensionGlobals'
 
 import { runtimeLanguageContext } from './runtimeLanguageContext'
-import { Recommendation, RecommendationsList } from '../client/codewhisperer'
+import { RecommendationsList } from '../client/codewhisperer'
 import { LicenseUtil } from './licenseUtil'
 import { CodewhispererUserDecision, telemetry } from '../../shared/telemetry/telemetry'
 import {
