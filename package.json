@@ -282,6 +282,11 @@
                     "default": 0.5,
                     "description": "The triggering threshold for the classifier"
                 },
+                "aws.codewhisperer.simulationJetbrainsIde": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "By checking this, plugin will use JB IDE coefficient instead"
+                },
                 "aws.codewhisperer.classifierInvocationProbability": {
                     "type": "number",
                     "description": "probability of single key stroke will prompt classifier to calculate if it should invoke classifier",

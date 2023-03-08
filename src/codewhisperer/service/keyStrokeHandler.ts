@@ -39,6 +39,10 @@ export class KeyStrokeHandler {
 
     public lastInvocationTime: number | undefined = undefined
 
+    public lastInvocationLineNumber: number | undefined = undefined
+
+    public triggerPointsCount: number = 0
+
     constructor() {
         this.specialChar = ''
     }
@@ -209,6 +213,9 @@ export class KeyStrokeHandler {
     ): Promise<void> {
         if (editor) {
             this.lastInvocationTime = performance.now()
+            this.lastInvocationLineNumber = editor.selection.active.line
+            this.triggerPointsCount += 1
+            console.log(`about to invoke CodeWhisperer...`)
             if (isCloud9()) {
                 if (RecommendationHandler.instance.isGenerateRecommendationInProgress) {
                     return

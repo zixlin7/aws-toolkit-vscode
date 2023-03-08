@@ -50,7 +50,7 @@ const lengthOfLeftPrevCoefficient = 0.4311
 // lenght of right_context
 const lengthofRightCoefficient = -0.5218
 
-const timeDiffCoefficient = -1.1024
+const timeDiffCoefficient = -110.24
 
 const lineDiffCoefficient = 0.0686
 
@@ -145,7 +145,17 @@ export const getShouldTrigger = (
 
     const timeDiff = KeyStrokeHandler.instance.lastInvocationTime
         ? performance.now() - KeyStrokeHandler.instance.lastInvocationTime
-        : performance.now() - 0
+        : 0
+
+    const lineDiff = KeyStrokeHandler.instance.lastInvocationLineNumber
+        ? lineNum - KeyStrokeHandler.instance.lastInvocationLineNumber
+        : 0
+
+    const ideCoefficient = (vscode.workspace
+        .getConfiguration('aws.codewhisperer')
+        .get('simulationJetbrainsIde') as boolean)
+        ? 0
+        : ideVscode
 
     const result =
         (lengthofRightCoefficient * (lengthofRight - minn.lenRight)) / (maxx.lenRight - minn.lenRight) +
@@ -155,12 +165,13 @@ export const getShouldTrigger = (
         (lineNumCoefficient * (lineNum - minn.lineNum)) / (maxx.lineNum - minn.lineNum) +
         (cursorOffsetCoefficient * (cursorOffset - minn.cursor)) / (maxx.cursor - minn.cursor) +
         (timeDiffCoefficient * (timeDiff - minn.timeDiff)) / (maxx.timeDiff - minn.timeDiff) +
+        (lineDiffCoefficient * (lineDiff - minn.lineDiff)) / (maxx.lineDiff - minn.lineDiff) +
         languageCoefficient +
         osCoefficient +
         triggerTypeCoefficient +
         charCoefficient +
         keyWordCoefficient +
-        ideVscode +
+        ideCoefficient +
         previousOneAccept +
         previousOneReject +
         previousOneOther +
