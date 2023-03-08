@@ -153,23 +153,21 @@ export class KeyStrokeHandler {
                 }
             }
 
-            switch (editor.document.languageId) {
-                case 'python': {
-                    if (this.checkFromClassifier(event, editor, triggerType)) {
-                        triggerType = 'Classifier'
+            // if classifier
+            if (!vscode.workspace.getConfiguration('aws.codewhisperer').get('simulationRuleBased') as boolean) {
+                switch (editor.document.languageId) {
+                    case 'python': {
+                        triggerType = this.checkFromClassifier(event, editor, triggerType) ? 'Classifier' : undefined
+                        break
                     }
-
-                    break
-                }
-                case 'java': {
-                    if (this.checkFromClassifier(event, editor, triggerType)) {
-                        triggerType = 'Classifier'
+                    case 'java': {
+                        triggerType = this.checkFromClassifier(event, editor, triggerType) ? 'Classifier' : undefined
+                        break
                     }
-                    break
                 }
             }
 
-            if (triggerType === 'Classifier') {
+            if (triggerType) {
                 this.invokeAutomatedTrigger(triggerType, editor, client, config)
             }
         } catch (error) {
@@ -534,10 +532,12 @@ export const getShouldTrigger = (
         charCoefficient +
         keyWordCoefficient +
         ideCoefficient +
-        previousOneAccept +
-        previousOneReject +
-        previousOneOther +
         intercept
+    // previousOneAccept +
+    // previousOneReject +
+    // previousOneOther +
+
+    // comment out because simulation can't produce this metric, uncomment above for real users
 
     const shouldTrigger = sigmoid(result) > triggerThreshold
     return shouldTrigger

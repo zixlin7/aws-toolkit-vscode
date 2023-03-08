@@ -268,8 +268,14 @@
                     "type": "integer",
                     "description": ""
                 },
+                "aws.codewhisperer.simulationRuleBased": {
+                    "type": "boolean",
+                    "description": "by checking this option, auto triggering classifier will not be invoked and will run simulation against rule based heuristic",
+                    "default": false
+                },
                 "aws.codewhisperer.simulationSampler": {
                     "type": "boolean",
+                    "description": "by checking this option, simulation will random sampling code snippets from input file instead of in order",
                     "default": false
                 },
                 "aws.codeWhisperer.simulationTypingInterval": {

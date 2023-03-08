@@ -39,11 +39,6 @@ import globals from '../../shared/extensionGlobals'
 
 const performance = globalThis.performance ?? require('perf_hooks').performance
 
-interface UserPreviousData {
-    decision: CodewhispererUserDecision
-    invocationLineNumber: number
-}
-
 export class RecommendationHandler {
     public lastInvocationTime: number
     public requestId: string
@@ -62,8 +57,6 @@ export class RecommendationHandler {
         | codewhispererClient.ListRecommendationsRequest
         | codewhispererClient.GenerateRecommendationsRequest
         | undefined
-
-    private previousUserDecisionStack: CodewhispererUserDecision[] = []
 
     constructor() {
         this.requestId = ''
