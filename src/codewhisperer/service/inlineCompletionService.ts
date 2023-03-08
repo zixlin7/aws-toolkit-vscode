@@ -7,7 +7,7 @@ import * as vscode from 'vscode'
 import { ConfigurationEntry, vsCodeState } from '../models/model'
 import * as CodeWhispererConstants from '../models/constants'
 import { ReferenceInlineProvider } from './referenceInlineProvider'
-import { DefaultCodeWhispererClient, Recommendation, RecommendationsList } from '../client/codewhisperer'
+import { DefaultCodeWhispererClient, Recommendation } from '../client/codewhisperer'
 import { RecommendationHandler } from './recommendationHandler'
 import {
     telemetry,

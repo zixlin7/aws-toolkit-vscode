@@ -2,7 +2,6 @@
  * Copyright 2022 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
-import { timeStamp } from 'console'
 import * as fs from 'fs-extra'
 import * as fuzz from 'fuzzball'
 import * as vscode from 'vscode'
