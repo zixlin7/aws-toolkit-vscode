@@ -22,7 +22,7 @@ import { isCloud9 } from '../../shared/extensionUtilities'
 import { asyncCallWithTimeout, isAwsError } from '../util/commonUtil'
 import * as codewhispererClient from '../client/codewhisperer'
 import { showTimedMessage } from '../../shared/utilities/messages'
-import { CodewhispererUserDecision, telemetry } from '../../shared/telemetry/telemetry'
+import { PreviousDecision, telemetry } from '../../shared/telemetry/telemetry'
 import {
     CodewhispererAutomatedTriggerType,
     CodewhispererCompletionType,
@@ -51,6 +51,7 @@ export class RecommendationHandler {
     private cancellationToken: vscode.CancellationTokenSource
     public errorMessagePrompt: string
     public isGenerateRecommendationInProgress: boolean
+    public classifierResult?: number
     private _onDidReceiveRecommendation: vscode.EventEmitter<void> = new vscode.EventEmitter<void>()
     public readonly onDidReceiveRecommendation: vscode.Event<void> = this._onDidReceiveRecommendation.event
     public lastRequest:
@@ -70,6 +71,7 @@ export class RecommendationHandler {
         this.errorMessagePrompt = ''
         this.recommendationSuggestionState = new Map<number, string>()
         this.isGenerateRecommendationInProgress = false
+        this.classifierResult = undefined
     }
 
     static #instance: RecommendationHandler
@@ -281,6 +283,8 @@ export class RecommendationHandler {
                     codewhispererLanguage: languageContext.language,
                     reason: reason ? reason.substring(0, 200) : undefined,
                     credentialStartUrl: TelemetryHelper.instance.startUrl,
+                    codewhispererClassifierResult: this.classifierResult,
+                    previousDecision: TelemetryHelper.instance.decisionQueue.mostRecentDecision() as PreviousDecision,
                 })
             }
             if (invocationResult === 'Succeeded') {

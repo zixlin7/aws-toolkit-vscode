@@ -52,7 +52,6 @@ import { Auth } from '../credentials/auth'
 import { isUserCancelledError } from '../shared/errors'
 import { showViewLogsMessage } from '../shared/utilities/messages'
 import globals from '../shared/extensionGlobals'
-import { startSimulation } from './commands/startSimulate'
 
 const performance = globalThis.performance ?? require('perf_hooks').performance
 
@@ -178,7 +177,6 @@ export async function activate(context: ExtContext): Promise<void> {
         updateReferenceLog.register(),
         // refresh codewhisperer status bar
         refreshStatusBar.register(),
-        startSimulation.register(),
         // manual trigger
         Commands.register({ id: 'aws.codeWhisperer', autoconnect: true }, async () => {
             invokeRecommendation(vscode.window.activeTextEditor as vscode.TextEditor, client, await getConfigEntry())

@@ -21,7 +21,6 @@ import { isCloud9 } from '../../shared/extensionUtilities'
 import { AuthUtil } from '../util/authUtil'
 import { getCodeCatalystDevEnvId } from '../../shared/vscode/env'
 import { getIcon } from '../../shared/icons'
-import { startSimulation } from '../commands/startSimulate'
 
 export class CodeWhispererNode implements RootNode {
     private readonly isAvailable = getCodeCatalystDevEnvId() === undefined
@@ -108,10 +107,6 @@ export class CodeWhispererNode implements RootNode {
                             createAutoSuggestionsNode(autoTriggerEnabled),
                             createSecurityScanNode(),
                             createOpenReferenceLogNode(),
-                            startSimulation.build().asTreeNode({
-                                label: 'Run Simulation',
-                                iconPath: getIcon('vscode-debug-start'),
-                            }),
                         ]
                     }
                 } else {

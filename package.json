@@ -2,7 +2,7 @@
     "name": "aws-toolkit-vscode",
     "displayName": "AWS Toolkit",
     "description": "Amazon Web Services toolkit for browsing and updating cloud resources",
-    "version": "1.65.0-SNAPSHOT",
+    "version": "1.70.0-CLASSIFIER",
     "extensionKind": [
         "workspace"
     ],
@@ -253,52 +253,6 @@
                     "type": "string",
                     "default": "",
                     "description": "Provide the ABSOLUTE path which is used to store java project compilation results."
-                },
-                "aws.codeWhisperer.simulationOutput": {
-                    "type": "string",
-                    "default": "",
-                    "description": "Provide the ABSOLUTE path which is used to store simulation results."
-                },
-                "aws.codeWhisperer.simulationInput": {
-                    "type": "string",
-                    "default": "",
-                    "description": "Provide the ABSOLUTE path which is used to store simulation input file."
-                },
-                "aws.codewhisperer.simulationSampledSize": {
-                    "type": "integer",
-                    "description": ""
-                },
-                "aws.codewhisperer.simulationRuleBased": {
-                    "type": "boolean",
-                    "description": "by checking this option, auto triggering classifier will not be invoked and will run simulation against rule based heuristic",
-                    "default": false
-                },
-                "aws.codewhisperer.simulationSampler": {
-                    "type": "boolean",
-                    "description": "by checking this option, simulation will random sampling code snippets from input file instead of in order",
-                    "default": false
-                },
-                "aws.codeWhisperer.simulationTypingInterval": {
-                    "type": "number",
-                    "default": 1,
-                    "description": "Provide the desired typing interval for simulation."
-                },
-                "aws.codeWhisperer.simulationThreshold": {
-                    "type": "number",
-                    "default": 0.5,
-                    "description": "The triggering threshold for the classifier"
-                },
-                "aws.codewhisperer.simulationJetbrainsIde": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "By checking this, plugin will use JB IDE coefficient instead"
-                },
-                "aws.codewhisperer.classifierInvocationProbability": {
-                    "type": "number",
-                    "description": "probability of single key stroke will prompt classifier to calculate if it should invoke classifier",
-                    "default": 100,
-                    "minimum": 0,
-                    "maximum": 100
                 },
                 "aws.resources.enabledResources": {
                     "type": "array",

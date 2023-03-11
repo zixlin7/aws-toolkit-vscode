@@ -31,6 +31,30 @@
             "name": "cli",
             "type": "string",
             "description": "Installed CLI"
+        },
+        {
+            "name": "codewhispererClassifierResult",
+            "type": "double",
+            "description": "The logistic result calculated by the CodeWhisperer classifier model"
+        },
+        {
+            "name": "previousDecision",
+            "type": "string",
+            "description": "The previous trigger level user decision used to evaluate classifier",
+            "allowedValues": ["Accept", "Reject", "Discard", "Empty"]
+        },
+        {
+            "name": "codewhispererAutomatedTriggerType",
+            "type": "string",
+            "description": "The type of the Automated trigger to send request to CodeWhisperer service",
+            "allowedValues": [
+                "KeyStrokeCount",
+                "SpecialCharacters",
+                "Enter",
+                "IntelliSenseAcceptance",
+                "IdleTime",
+                "Classifier"
+            ]
         }
     ],
     "metrics": [
@@ -39,10 +63,18 @@
             "description": "Emitted whenever a registered Toolkit command is executed",
             "passive": true,
             "metadata": [
-                { "type": "command" },
-                { "type": "debounceCount" },
-                { "type": "duration" },
-                { "type": "result" },
+                {
+                    "type": "command"
+                },
+                {
+                    "type": "debounceCount"
+                },
+                {
+                    "type": "duration"
+                },
+                {
+                    "type": "result"
+                },
                 {
                     "type": "reason",
                     "required": false
@@ -57,7 +89,14 @@
         {
             "name": "aws_installCli",
             "description": "Called after attempting to install a local copy of a missing CLI",
-            "metadata": [{ "type": "result" }, { "type": "cli" }]
+            "metadata": [
+                {
+                    "type": "result"
+                },
+                {
+                    "type": "cli"
+                }
+            ]
         },
         {
             "name": "aws_refreshCredentials",
@@ -189,7 +228,11 @@
         {
             "name": "aws_showExplorerErrorDetails",
             "description": "Called when getting more details about errors thrown by the explorer",
-            "metadata": [{ "type": "result" }]
+            "metadata": [
+                {
+                    "type": "result"
+                }
+            ]
         },
         {
             "name": "aws_showRegion",
@@ -202,7 +245,11 @@
         {
             "name": "sam_detect",
             "description": "Called when detecting the location of the SAM CLI",
-            "metadata": [{ "type": "result" }],
+            "metadata": [
+                {
+                    "type": "result"
+                }
+            ],
             "passive": true
         },
         {
@@ -233,17 +280,98 @@
             "name": "sam_attachDebugger",
             "description": "Called after trying to attach a debugger to a local sam invoke",
             "metadata": [
-                { "type": "result" },
-                { "type": "lambdaPackageType" },
-                { "type": "runtime" },
-                { "type": "attempts" },
-                { "type": "duration" },
-                { "type": "lambdaArchitecture", "required": false }
+                {
+                    "type": "result"
+                },
+                {
+                    "type": "lambdaPackageType"
+                },
+                {
+                    "type": "runtime"
+                },
+                {
+                    "type": "attempts"
+                },
+                {
+                    "type": "duration"
+                },
+                {
+                    "type": "lambdaArchitecture",
+                    "required": false
+                }
             ]
         },
         {
             "name": "sam_openConfigUi",
             "description": "Called after opening the SAM Config UI"
+        },
+        {
+            "name": "codewhisperer_serviceInvocation",
+            "description": "Client side invocation of the CodeWhisperer service for suggestion",
+            "metadata": [
+                {
+                    "type": "codewhispererAutomatedTriggerType",
+                    "required": false
+                },
+                {
+                    "type": "codewhispererCompletionType",
+                    "required": false
+                },
+                {
+                    "type": "codewhispererCursorOffset"
+                },
+                {
+                    "type": "codewhispererLanguage"
+                },
+                {
+                    "type": "codewhispererLastSuggestionIndex",
+                    "required": false
+                },
+                {
+                    "type": "codewhispererLineNumber"
+                },
+                {
+                    "type": "codewhispererRequestId",
+                    "required": false
+                },
+                {
+                    "type": "codewhispererRuntime",
+                    "required": false
+                },
+                {
+                    "type": "codewhispererRuntimeSource",
+                    "required": false
+                },
+                {
+                    "type": "codewhispererSessionId",
+                    "required": false
+                },
+                {
+                    "type": "codewhispererTriggerType"
+                },
+                {
+                    "type": "duration"
+                },
+                {
+                    "type": "reason",
+                    "required": false
+                },
+                {
+                    "type": "result"
+                },
+                {
+                    "type": "credentialStartUrl",
+                    "required": false
+                },
+                {
+                    "type": "codewhispererClassifierResult",
+                    "required": false
+                },
+                {
+                    "type": "previousDecision",
+                    "required": false
+                }
+            ]
         }
     ]
 }

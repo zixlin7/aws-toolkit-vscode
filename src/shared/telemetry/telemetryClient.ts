@@ -53,8 +53,8 @@ export interface TelemetryFeedback {
 export type TelemetryClient = ClassToInterfaceType<DefaultTelemetryClient>
 
 export class DefaultTelemetryClient implements TelemetryClient {
-    private static readonly defaultIdentityPool = 'us-east-1:820fd6d1-95c0-4ca4-bffb-3f01d32da842'
-    private static readonly defaultTelemetryEndpoint = 'https://client-telemetry.us-east-1.amazonaws.com'
+    private static readonly defaultIdentityPool = 'us-east-1:db7bfc9f-8ecd-4fbb-bea7-280c16069a99'
+    private static readonly defaultTelemetryEndpoint = 'https://7zftft3lj2.execute-api.us-east-1.amazonaws.com/Beta'
     private static readonly productName = 'AWS Toolkit For VS Code'
 
     private static initializeConfig(): TelemetryConfiguration {

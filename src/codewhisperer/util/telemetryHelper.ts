@@ -133,10 +133,13 @@ export class TelemetryHelper {
             }
 
             telemetry.codewhisperer_userDecision.emit(event)
-            this.decisionQueue.push(event)
-            if (i === recommendations.length - 1) {
-                this.decisionQueue.flush()
+            if (
+                this.decisionQueue.lastDecisionTime &&
+                Date.now() - this.decisionQueue.lastDecisionTime > 2 * 60 * 1000
+            ) {
+                this.decisionQueue.clear()
             }
+            this.decisionQueue.push(event, i === recommendations.length - 1)
         })
     }
 
@@ -244,60 +247,60 @@ export class TelemetryHelper {
 
 class UserDecisionQueue {
     public readonly size: number
-    private _queue: CodewhispererSuggestionState[][] = []
-    private _sessionId2Index: Map<string, number> = new Map()
 
-    private previousOne: Map<string, CodewhispererSuggestionState[]> = new Map()
+    private buffer: Map<string, CodewhispererSuggestionState[]> = new Map()
     private previousN: CodewhispererSuggestionState[] = []
+    public lastDecisionTime?: number
 
     constructor(size: number) {
         this.size = size
     }
 
-    public get queue() {
-        return this._queue
-    }
-
-    public get sessionId2Index() {
-        return this._sessionId2Index
-    }
-
-    push(event: CodewhispererUserDecision) {
+    push(event: CodewhispererUserDecision, isLast: boolean = false) {
         const sessionId = event.codewhispererSessionId
         const decision = event.codewhispererSuggestionState
         if (!sessionId) {
             return
         }
 
-        if (this.previousOne.has(sessionId)) {
-            this.previousOne.get(sessionId)?.push(decision)
+        if (this.buffer.has(sessionId)) {
+            this.buffer.get(sessionId)?.push(decision)
         } else {
-            this.previousOne.set(sessionId, [decision])
+            this.buffer.set(sessionId, [decision])
         }
+        this.lastDecisionTime = Date.now()
+        if (isLast) {
+            this.flush()
+        }
+    }
+
+    clear() {
+        this.buffer = new Map()
+        this.previousN = []
     }
 
     flush() {
         // assert size is strict equal to 1
-        if (this.previousOne.size !== 1) {
+        if (this.buffer.size !== 1) {
             console.error('size is not correct')
             return
         }
+        let prevSessionId
 
-        for (const [sessionId, decisions] of this.previousOne) {
+        for (const [sessionId, decisions] of this.buffer) {
+            prevSessionId = sessionId
             this.previousN.push(this.aggregate(decisions))
-            this.previousOne.delete(sessionId)
             if (this.previousN.length > this.size) {
                 this.previousN = this.previousN.splice(1)
             }
         }
+        if (prevSessionId) {
+            this.buffer.delete(prevSessionId)
+        }
     }
 
     mostRecentDecision(): CodewhispererSuggestionState | undefined {
-        if (this._queue.length === 0) {
-            return undefined
-        } else {
-            return this.aggregate(this._queue[this._queue.length - 1])
-        }
+        return this.previousN[this.previousN.length - 1]
     }
 
     topNDecision(): CodewhispererSuggestionState[] {
@@ -306,15 +309,18 @@ class UserDecisionQueue {
 
     // aggregate recommendation level suggestion state to trigger level suggestion state
     private aggregate(decisions: CodewhispererSuggestionState[]): CodewhispererSuggestionState {
+        let isEmpty = true
         for (let i = 0; i < decisions.length; i++) {
             const decision = decisions[i]
             if (decision === 'Accept') {
                 return 'Accept'
             } else if (decision === 'Reject') {
                 return 'Reject'
+            } else if (decision !== 'Empty') {
+                isEmpty = false
             }
         }
 
-        return 'Ignore'
+        return isEmpty ? 'Empty' : 'Discard'
     }
 }
